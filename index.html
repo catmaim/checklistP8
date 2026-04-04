@@ -82,14 +82,37 @@
     .suspect-form, .checklist-section { border: none; }
     .section-items { display: block !important; }
   }
+  /* --- ส่วนของหน้า Login --- */
+  #login-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2C3E50; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .login-box { background: white; padding: 40px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .login-box h2 { color: #2C3E50; margin-bottom: 20px; }
+  .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  #main-app { display: none; } /* ซ่อนแอปหลักไว้ก่อนจนกว่าจะล็อกอินผ่าน */
 </style>
 </head>
 <body>
+<div id="login-page">
+  <div class="login-box">
+    <h2>🔒 เข้าสู่ระบบ</h2>
+    <input type="email" id="login-email" class="login-input" placeholder="อีเมล (Email)">
+    <input type="password" id="login-pass" class="login-input" placeholder="รหัสผ่าน (Password)">
+    <button class="btn btn-save" style="width: 100%; padding: 12px;" onclick="handleLogin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
 
-<nav class="navbar">
-  <button class="nav-btn active" onclick="showPage('page-home', this)">📝 บันทึกข้อมูล/ตรวจสอบ</button>
-  <button class="nav-btn" onclick="showPage('page-db', this)">🔍 ค้นหาประวัติ</button>
-</nav>
+<div id="main-app">
+
+<nav class="navbar" style="justify-content: space-between;">
+    <div style="color: white; font-size: 13px; display: flex; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 50px;">
+      👤 ผู้ใช้งาน: <strong id="user-display" style="margin-left: 5px; color: #F1C40F;"></strong>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button class="nav-btn active" onclick="showPage('page-home', this)">📝 บันทึก/ตรวจสอบ</button>
+      <button class="nav-btn" onclick="showPage('page-db', this)">🔍 ค้นหาประวัติ</button>
+      <button class="nav-btn" style="background: #C0392B;" onclick="handleLogout()">🚪 ออกจากระบบ</button>
+    </div>
+  </nav>
 
 <div class="app">
   <div class="header">
@@ -151,7 +174,7 @@
     </div>
 
     <div id="checklist-container" class="checklist-container"></div>
-  </div> </div> <div id="toast" class="toast"></div>
+  </div> </div> </div> <div id="toast" class="toast"></div>
   <div id="custom-modal" class="modal-overlay">
   <div class="modal-box">
     <h3 id="modal-title">แจ้งเตือน</h3>
@@ -166,7 +189,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
   
   // --- CONFIG ---
   const firebaseConfig = {
@@ -180,6 +203,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
  
 
   // ข้อมูล Checklist 10 หมวด
@@ -353,7 +377,50 @@
 
   let state = { checked: {}, notes: {}, images: {} };
   let allRecords = [];
+// --- ระบบ Login & Authentication ---
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // ดึงอีเมลมาแสดงที่ Navbar
+      document.getElementById('user-display').textContent = user.email;
+      
+      // Login สำเร็จ -> โชว์แอป ซ่อนหน้าล็อกอิน
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      if (!isAppInitialized) {
+        initApp(); // เริ่มโหลดข้อมูลต่างๆ
+        isAppInitialized = true;
+      }
+    } else {
+      // ยังไม่ได้ Login -> โชว์หน้าล็อกอิน ซ่อนแอป
+      document.getElementById('login-page').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('user-display').textContent = ""; // ล้างชื่อทิ้ง
+    }
+  });
+  
+  // ฟังก์ชันตอนกดปุ่มเข้าสู่ระบบ
+  window.handleLogin = async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    
+    if (!email || !pass) return showCustomAlert("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน");
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      showToast("เข้าสู่ระบบสำเร็จ ✓");
+    } catch (e) {
+      showCustomAlert("อีเมลหรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง", "เข้าสู่ระบบล้มเหลว");
+    }
+  };
 
+  // ฟังก์ชันตอนกดปุ่มออกจากระบบ
+  window.handleLogout = async () => {
+    showCustomConfirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยันออกจากระบบ", async () => {
+      await signOut(auth);
+      location.reload(); // รีเฟรชหน้าเว็บ 1 รอบ
+    });
+  };
+  
   // --- เริ่มต้นระบบ ---
   window.init = function() {
     buildChecklist();
@@ -485,30 +552,46 @@
 
   window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked; };
 
-  // --- ระบบดึงข้อมูลแบบ Real-time ---
+  // --- เรียลไทม์ฐานข้อมูล (แสดงตาราง + ปุ่มลบ แบบแบ่งสิทธิ์) ---
   function listenToDatabase() {
     const q = query(collection(db, "warrants"), orderBy("profile.date", "desc"));
+    
     onSnapshot(q, (snapshot) => {
       allRecords = [];
       const html = snapshot.docs.map(doc => {
-        const data = doc.data();
-        allRecords.push(data);
-        const checkedCount = Object.values(data.checked || {}).filter(v => v).length;
+        const d = doc.data(); // ใช้ตัวแปร d
+        allRecords.push(d);
+        const checks = Object.values(d.checked || {}).filter(v => v).length;
+
+        // 1. กำหนดอีเมลของ Super Admin (เปลี่ยนเป็นอีเมลแอดมินของคุณ)
+        const superAdminEmail = "admin@police.com"; 
+        const currentUserEmail = auth.currentUser ? auth.currentUser.email : "";
+        
+        // 2. เช็คว่ามีสิทธิ์ลบไหม? (เป็นคนสร้างข้อมูลนี้ หรือ เป็น Super Admin)
+        const canDelete = (d.createdBy === currentUserEmail) || (currentUserEmail === superAdminEmail);
+
+        // 3. สร้างปุ่มลบ (ถ้าไม่มีสิทธิ์ ให้ขึ้นคำว่า ดูได้อย่างเดียว)
+        const deleteButtonHTML = canDelete 
+          ? `<button class="btn" style="background:#C0392B; color:white; padding:5px 10px; font-size:11px;" onclick="deleteRecord('${d.profile.id}', event)">ลบ</button>`
+          : `<span style="font-size:11px; color:#888;">ดูได้อย่างเดียว</span>`;
+
         return `
-          <tr onclick="loadRecord('${data.profile.id}')">
-            <td><strong>${data.profile.id}</strong></td>
-            <td>${data.profile.name}</td>
-            <td>${data.profile.charge}</td>
-            <td><span class="badge-status">ทำแล้ว ${checkedCount} รายการ</span></td>
-            <td>${data.profile.date}</td>
-            <td>
-              <button class="btn" style="background:#C0392B; color:white; padding: 5px 10px; font-size: 11px;" 
-                onclick="deleteRecord('${data.profile.id}', event)">ลบ</button>
-            </td>
-          </tr>
-        `;
+          <tr onclick="loadRecord('${d.profile.id}')">
+            <td><strong>${d.profile.id}</strong></td>
+            <td>${d.profile.name}</td>
+            <td>${d.profile.charge}</td>
+            <td><span class="badge-status">ทำแล้ว ${checks} รายการ</span></td>
+            <td>${d.profile.date}</td>
+            <td>${deleteButtonHTML}</td>
+          </tr>`;
       }).join('');
+      
       document.getElementById('db-list').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">ไม่พบข้อมูล</td></tr>';
+      
+    }, (error) => {
+      // ถ้าโหลดไม่ได้เพราะติดสิทธิ์ Firebase จะแสดง Error สีแดงให้เห็นเลยครับ
+      document.getElementById('db-list').innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">โหลดข้อมูลไม่ได้: ${error.message}</td></tr>`;
+      console.error("Database Error:", error);
     });
   }
 // --- ระบบลบข้อมูลจากตาราง ---
@@ -587,70 +670,59 @@
     showPage('page-home', document.querySelectorAll('.nav-btn')[0]);
   };
 
-  // --- ระบบบันทึก (พร้อมดักจับ 13 หลัก และผู้บันทึก) ---
+  // --- ระบบบันทึก (ล็อกการบันทึกซ้ำ และ ล็อกสิทธิ์การแก้ไข) ---
   window.saveData = async function() {
     const idInput = document.getElementById('f-id').value.trim();
     const officerInput = document.getElementById('f-officer').value.trim();
-    
     let isValid = true;
 
-    // 1. ตรวจสอบเลขบัตร ปชช. (ต้องเป็นตัวเลข 13 หลักพอดี)
-    const idRegex = /^[0-9]{13}$/;
-    if (!idRegex.test(idInput)) {
-      document.getElementById('err-id').style.display = 'block';
-      isValid = false;
-    } else {
-      document.getElementById('err-id').style.display = 'none';
-    }
+    if (!/^[0-9]{13}$/.test(idInput)) { document.getElementById('err-id').style.display = 'block'; isValid = false; } 
+    else { document.getElementById('err-id').style.display = 'none'; }
 
-    // 2. ตรวจสอบชื่อผู้บันทึก (ห้ามเว้นว่าง)
-    if (officerInput === "") {
-      document.getElementById('err-officer').style.display = 'block';
-      isValid = false;
-    } else {
-      document.getElementById('err-officer').style.display = 'none';
-    }
+    if (officerInput === "") { document.getElementById('err-officer').style.display = 'block'; isValid = false; } 
+    else { document.getElementById('err-officer').style.display = 'none'; }
 
-    // ถ้าข้อมูลไม่ถูกต้อง ให้เด้ง Modal เตือนและหยุดการบันทึก
-    if (!isValid) {
-      return showCustomAlert("กรุณากรอกข้อมูลที่จำเป็น (เลขบัตร 13 หลัก และ ผู้บันทึก) ให้ถูกต้อง", "ข้อมูลไม่ครบถ้วน");
-    }
+    if (!isValid) return showCustomAlert("กรุณากรอกข้อมูลที่จำเป็น (เลขบัตร 13 หลัก และ ผู้บันทึก) ให้ถูกต้อง", "ข้อมูลไม่ครบถ้วน");
 
-    const id = idInput; // ใช้เลขบัตรที่ตรวจสอบแล้ว
-    const docRef = doc(db, "warrants", id);
+    const docRef = doc(db, "warrants", idInput);
     const docSnap = await getDoc(docRef);
+
+    // ดึงอีเมลคนที่ล็อกอินอยู่ กับกำหนดอีเมล Super Admin
+    const currentUserEmail = auth.currentUser ? auth.currentUser.email : "Unknown";
+    const superAdminEmail = "admin@police.com"; // <-- เปลี่ยนเป็นอีเมลแอดมินของคุณตรงนี้
+
+    // 🚨 ตรวจสอบการบันทึกซ้ำ และสิทธิ์การแก้ไข
+    if (docSnap.exists()) {
+      const existingData = docSnap.data();
+      const ownerEmail = existingData.createdBy || "Unknown";
+
+      // ถ้าคนล็อกอิน ไม่ใช่เจ้าของข้อมูล และ ไม่ใช่แอดมิน -> บล็อกการเซฟทับทันที!
+      if (currentUserEmail !== ownerEmail && currentUserEmail !== superAdminEmail) {
+        return showCustomAlert(`เลขบัตร ปชช. นี้ถูกบันทึกไว้แล้วโดยคุณ: ${ownerEmail}\nคุณไม่มีสิทธิ์บันทึกซ้ำหรือแก้ไขข้อมูลนี้ครับ`, "ไม่อนุญาตให้บันทึกซ้ำ");
+      }
+    }
 
     const dataToSave = {
       profile: {
-        id: id,
-        name: document.getElementById('f-name').value,
-        gender: document.getElementById('f-gender').value,
-        age: document.getElementById('f-age').value,
-        warrant: document.getElementById('f-warrant').value,
-        charge: document.getElementById('f-charge').value,
-        address: document.getElementById('f-address').value,
-        officer: officerInput, // ใช้ชื่อผู้บันทึกที่ตรวจสอบแล้ว
-        date: document.getElementById('f-date').value
+        id: idInput, name: document.getElementById('f-name').value, gender: document.getElementById('f-gender').value,
+        age: document.getElementById('f-age').value, warrant: document.getElementById('f-warrant').value,
+        charge: document.getElementById('f-charge').value, address: document.getElementById('f-address').value,
+        officer: officerInput, date: document.getElementById('f-date').value
       },
-      checked: state.checked,
-      notes: state.notes,
-      images: state.images 
+      checked: state.checked, notes: state.notes, images: state.images,
+      // ถ้าเป็นข้อมูลเก่า ให้เก็บชื่อคนสร้างเดิมไว้, ถ้าข้อมูลใหม่ ให้ใช้อีเมลคนล็อกอิน
+      createdBy: docSnap.exists() ? docSnap.data().createdBy : currentUserEmail
     };
 
     const doSave = async () => {
-      try {
-        await setDoc(docRef, dataToSave);
-        showToast("บันทึกข้อมูลลงฐานข้อมูลแล้ว ✓");
-      } catch (e) { showCustomAlert("เกิดข้อผิดพลาด: " + e.message, "ระบบขัดข้อง"); }
+      try { await setDoc(docRef, dataToSave); showToast("บันทึกเรียบร้อย ✓"); } 
+      catch (e) { showCustomAlert(e.message, "ระบบขัดข้อง"); }
     };
 
     if (docSnap.exists()) {
-      showCustomConfirm("เลขบัตรนี้มีข้อมูลอยู่แล้ว คุณต้องการบันทึกอัปเดตทับข้อมูลเดิมใช่หรือไม่?", "พบข้อมูลซ้ำ", () => {
-        doSave();
-      });
-    } else {
-      doSave();
-    }
+      // เด้งถามเฉพาะกรณีที่ตัวเองเป็นเจ้าของ หรือเป็นแอดมิน
+      showCustomConfirm("คุณเคยบันทึกข้อมูลเลขบัตรนี้ไว้แล้ว ต้องการบันทึกข้อมูลใหม่ทับลงไปใช่หรือไม่?", "ยืนยันการอัปเดตข้อมูล", doSave);
+    } else { doSave(); } // ข้อมูลใหม่ เซฟได้เลย
   };
 
   // --- ระบบ Export PPT ---
