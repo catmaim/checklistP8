@@ -6,6 +6,26 @@
 <title>Warrant Database System — ระบบจัดการหมายจับออนไลน์</title>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
+  /* --- ส่วนของ ป๊อปอัปแจ้งเตือน (Custom Modal) --- */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center;
+    z-index: 4000; opacity: 0; pointer-events: none; transition: all 0.3s ease;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; backdrop-filter: blur(3px); }
+  .modal-box {
+    background: white; padding: 25px; border-radius: 15px; max-width: 400px; width: 90%;
+    text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transform: translateY(-30px); transition: all 0.3s ease;
+  }
+  .modal-overlay.show .modal-box { transform: translateY(0); }
+  .modal-box h3 { color: #C0392B; margin-bottom: 10px; font-size: 18px; }
+  .modal-box p { color: #555; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+  .modal-actions { display: flex; justify-content: center; gap: 10px; }
+  .modal-btn {
+    padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+    font-weight: bold; transition: 0.2s; font-size: 13px; min-width: 80px;
+  }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Sarabun', 'Segoe UI', sans-serif; background: #f0f2f5; color: #222; line-height: 1.6; }
   .app { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem; }
@@ -90,10 +110,10 @@
               <th>ข้อหา</th>
               <th>สถานะ</th>
               <th>วันที่บันทึก</th>
-            </tr>
+              <th>จัดการ</th> </tr>
           </thead>
           <tbody id="db-list">
-            <tr><td colspan="5" style="text-align:center;">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="6" style="text-align:center;">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -110,25 +130,43 @@
     <div class="suspect-form">
       <h3>📝 ข้อมูลผู้ต้องหา</h3>
       <div class="form-grid">
-        <div class="form-field"><label>เลขบัตรประชาชน *</label><input id="f-id" type="text" placeholder="ห้ามซ้ำ"></div>
+        <div class="form-field">
+  <label>เลขบัตรประชาชน (13 หลัก) *</label>
+  <input id="f-id" type="text" placeholder="ตัวอย่าง: 1234567890123" maxlength="13">
+  <span id="err-id" style="color: #C0392B; font-size: 11px; display: none;">* กรุณากรอกเลขบัตรประชาชนเป็นตัวเลข 13 หลัก</span>
+</div>
         <div class="form-field"><label>ชื่อ-นามสกุล</label><input id="f-name" type="text"></div>
         <div class="form-field"><label>เพศ</label><input id="f-gender" type="text"></div>
         <div class="form-field"><label>อายุ</label><input id="f-age" type="text"></div>
         <div class="form-field"><label>เลขหมายจับ</label><input id="f-warrant" type="text"></div>
         <div class="form-field"><label>ข้อหา</label><input id="f-charge" type="text"></div>
         <div class="form-field" style="grid-column: span 2;"><label>ที่อยู่</label><textarea id="f-address"></textarea></div>
-        <div class="form-field"><label>ผู้บันทึก</label><input id="f-officer" type="text"></div>
+        <div class="form-field">
+  <label>ผู้บันทึก *</label>
+  <input id="f-officer" type="text" placeholder="ชื่อ-สกุล เจ้าหน้าที่">
+  <span id="err-officer" style="color: #C0392B; font-size: 11px; display: none;">* กรุณาระบุชื่อผู้บันทึก</span>
+</div>
         <div class="form-field"><label>วันที่ตรวจสอบ</label><input id="f-date" type="date"></div>
       </div>
     </div>
 
     <div id="checklist-container" class="checklist-container"></div>
   </div> </div> <div id="toast" class="toast"></div>
+  <div id="custom-modal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modal-title">แจ้งเตือน</h3>
+    <p id="modal-desc">รายละเอียด</p>
+    <div class="modal-actions">
+      <button id="modal-btn-cancel" class="btn btn-clear">ยกเลิก</button>
+      <button id="modal-btn-confirm" class="btn btn-save">ตกลง</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  
   
   // --- CONFIG ---
   const firebaseConfig = {
@@ -142,7 +180,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const storage = getStorage(app);
+ 
 
   // ข้อมูล Checklist 10 หมวด
   const SECTIONS = [
@@ -330,6 +368,38 @@
     document.getElementById(pageId).classList.add('active');
     btn.classList.add('active');
   };
+// --- ระบบ Custom Modal แจ้งเตือน ---
+  let modalConfirmCallback = null;
+
+  window.showCustomAlert = function(msg, title = "แจ้งเตือน") {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-desc').textContent = msg;
+    document.getElementById('modal-btn-cancel').style.display = 'none'; // ซ่อนปุ่มยกเลิก
+    document.getElementById('modal-btn-confirm').textContent = "ตกลง";
+    document.getElementById('custom-modal').classList.add('show');
+    
+    document.getElementById('modal-btn-confirm').onclick = () => {
+      document.getElementById('custom-modal').classList.remove('show');
+    };
+  };
+
+  window.showCustomConfirm = function(msg, title, callback) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-desc').textContent = msg;
+    document.getElementById('modal-btn-cancel').style.display = 'block'; // โชว์ปุ่มยกเลิก
+    document.getElementById('modal-btn-confirm').textContent = "ยืนยัน";
+    document.getElementById('custom-modal').classList.add('show');
+
+    modalConfirmCallback = callback;
+
+    document.getElementById('modal-btn-cancel').onclick = () => {
+      document.getElementById('custom-modal').classList.remove('show');
+    };
+    document.getElementById('modal-btn-confirm').onclick = () => {
+      document.getElementById('custom-modal').classList.remove('show');
+      if (modalConfirmCallback) modalConfirmCallback();
+    };
+  };
 
   // --- สร้างหน้าตา Checklist ---
   function buildChecklist() {
@@ -366,31 +436,51 @@
     `).join('');
   }
 
-  // --- ฟังก์ชันอัปโหลดรูปภาพ ---
-  window.handleFileUpload = async function(input, key) {
+  // --- ฟังก์ชันแนบรูปภาพแบบ Base64 (พร้อมบีบอัดภาพอัตโนมัติ) ---
+  window.handleFileUpload = function(input, key) {
     const file = input.files[0];
     if (!file) return;
+    
     const id = document.getElementById('f-id').value;
-    if (!id) return alert("กรุณาใส่เลขบัตรประชาชนก่อนอัปโหลดรูป เพื่อใช้เป็นรหัสอ้างอิง");
+    if (!id) return showCustomAlert("กรุณาใส่เลขบัตรประชาชนก่อนแนบรูปภาพ เพื่อใช้เป็นรหัสอ้างอิง", "ข้อผิดพลาด");
 
     const loader = document.getElementById(`loader-${key}`);
     const preview = document.getElementById(`img-${key}`);
     
-    try {
-      loader.style.display = 'inline';
-      const fileRef = ref(storage, `warrants/${id}/${key}_${file.name}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
-      
-      state.images[key] = url;
-      preview.src = url;
-      preview.classList.add('active');
-      showToast("อัปโหลดรูปสำเร็จ ✓");
-    } catch (e) {
-      alert("อัปโหลดพลาด: " + e.message);
-    } finally {
-      loader.style.display = 'none';
-    }
+    loader.style.display = 'inline';
+
+    // อ่านไฟล์ภาพที่ผู้ใช้เลือก
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        // สร้าง Canvas เพื่อทำการบีบอัดภาพ
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800; // บีบอัดความกว้างไม่เกิน 800px
+        let scaleSize = MAX_WIDTH / img.width;
+        
+        // ถ้ารูปเล็กกว่า 800px อยู่แล้ว ไม่ต้องขยาย
+        if (scaleSize > 1) scaleSize = 1; 
+
+        canvas.width = img.width * scaleSize;
+        canvas.height = img.height * scaleSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // แปลงภาพเป็น Base64 (ชนิด JPEG, คุณภาพ 70% เพื่อประหยัดพื้นที่ Firestore)
+        const base64String = canvas.toDataURL('image/jpeg', 0.7);
+
+        // บันทึกและแสดงผล
+        state.images[key] = base64String; 
+        preview.src = base64String;
+        preview.classList.add('active');
+        loader.style.display = 'none';
+        showToast("แนบรูปและบีบอัดสำเร็จ ✓");
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file); // เริ่มอ่านไฟล์
   };
 
   window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked; };
@@ -411,12 +501,41 @@
             <td>${data.profile.charge}</td>
             <td><span class="badge-status">ทำแล้ว ${checkedCount} รายการ</span></td>
             <td>${data.profile.date}</td>
+            <td>
+              <button class="btn" style="background:#C0392B; color:white; padding: 5px 10px; font-size: 11px;" 
+                onclick="deleteRecord('${data.profile.id}', event)">ลบ</button>
+            </td>
           </tr>
         `;
       }).join('');
-      document.getElementById('db-list').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">ไม่พบข้อมูล</td></tr>';
+      document.getElementById('db-list').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">ไม่พบข้อมูล</td></tr>';
     });
   }
+// --- ระบบลบข้อมูลจากตาราง ---
+  window.deleteRecord = function(id, event) {
+    event.stopPropagation(); // ป้องกันไม่ให้คลิกปุ่มลบแล้วไปเรียกคำสั่งดึงข้อมูล(loadRecord)
+    
+    // เรียกใช้ป๊อปอัปสวยๆ ที่เราสร้างไว้
+    showCustomConfirm(`คุณต้องการลบข้อมูลของเลขบัตร ${id} ใช่หรือไม่? ข้อมูลนี้จะถูกลบออกจากฐานข้อมูลทันที`, "ยืนยันการลบข้อมูล", async () => {
+      try {
+        await deleteDoc(doc(db, "warrants", id)); // สั่งลบจาก Firebase
+        showToast("ลบข้อมูลสำเร็จ ✓");
+        
+        // ถ้าเลขบัตรที่ถูกลบ ตรงกับเลขบัตรที่เปิดค้างอยู่หน้าแรก ให้ล้างฟอร์มหน้าแรกทิ้งด้วย
+        if (document.getElementById('f-id').value === id) {
+           document.getElementById('f-id').value = '';
+           document.getElementById('f-name').value = '';
+           document.getElementById('f-charge').value = '';
+           document.getElementById('f-warrant').value = '';
+           // ล้าง state 
+           state.checked = {}; state.notes = {}; state.images = {};
+           buildChecklist();
+        }
+      } catch (e) {
+        showCustomAlert("เกิดข้อผิดพลาดในการลบ: " + e.message, "ระบบขัดข้อง");
+      }
+    });
+  };
 
   // ค้นหาในตาราง
   window.filterTable = function() {
@@ -468,18 +587,40 @@
     showPage('page-home', document.querySelectorAll('.nav-btn')[0]);
   };
 
-  // --- ระบบบันทึก ---
+  // --- ระบบบันทึก (พร้อมดักจับ 13 หลัก และผู้บันทึก) ---
   window.saveData = async function() {
-    const id = document.getElementById('f-id').value;
-    if (!id) return alert("กรุณากรอกเลขบัตรประชาชน");
+    const idInput = document.getElementById('f-id').value.trim();
+    const officerInput = document.getElementById('f-officer').value.trim();
+    
+    let isValid = true;
 
-    const docRef = doc(db, "warrants", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      if (!confirm("เลขบัตรนี้มีข้อมูลอยู่แล้ว คุณต้องการบันทึกอัปเดตทับข้อมูลเดิมใช่หรือไม่?")) return;
+    // 1. ตรวจสอบเลขบัตร ปชช. (ต้องเป็นตัวเลข 13 หลักพอดี)
+    const idRegex = /^[0-9]{13}$/;
+    if (!idRegex.test(idInput)) {
+      document.getElementById('err-id').style.display = 'block';
+      isValid = false;
+    } else {
+      document.getElementById('err-id').style.display = 'none';
     }
 
-    const data = {
+    // 2. ตรวจสอบชื่อผู้บันทึก (ห้ามเว้นว่าง)
+    if (officerInput === "") {
+      document.getElementById('err-officer').style.display = 'block';
+      isValid = false;
+    } else {
+      document.getElementById('err-officer').style.display = 'none';
+    }
+
+    // ถ้าข้อมูลไม่ถูกต้อง ให้เด้ง Modal เตือนและหยุดการบันทึก
+    if (!isValid) {
+      return showCustomAlert("กรุณากรอกข้อมูลที่จำเป็น (เลขบัตร 13 หลัก และ ผู้บันทึก) ให้ถูกต้อง", "ข้อมูลไม่ครบถ้วน");
+    }
+
+    const id = idInput; // ใช้เลขบัตรที่ตรวจสอบแล้ว
+    const docRef = doc(db, "warrants", id);
+    const docSnap = await getDoc(docRef);
+
+    const dataToSave = {
       profile: {
         id: id,
         name: document.getElementById('f-name').value,
@@ -488,18 +629,28 @@
         warrant: document.getElementById('f-warrant').value,
         charge: document.getElementById('f-charge').value,
         address: document.getElementById('f-address').value,
-        officer: document.getElementById('f-officer').value,
+        officer: officerInput, // ใช้ชื่อผู้บันทึกที่ตรวจสอบแล้ว
         date: document.getElementById('f-date').value
       },
       checked: state.checked,
       notes: state.notes,
-      images: state.images
+      images: state.images 
     };
 
-    try {
-      await setDoc(docRef, data);
-      showToast("บันทึกข้อมูลลงฐานข้อมูลแล้ว ✓");
-    } catch (e) { alert("Error: " + e.message); }
+    const doSave = async () => {
+      try {
+        await setDoc(docRef, dataToSave);
+        showToast("บันทึกข้อมูลลงฐานข้อมูลแล้ว ✓");
+      } catch (e) { showCustomAlert("เกิดข้อผิดพลาด: " + e.message, "ระบบขัดข้อง"); }
+    };
+
+    if (docSnap.exists()) {
+      showCustomConfirm("เลขบัตรนี้มีข้อมูลอยู่แล้ว คุณต้องการบันทึกอัปเดตทับข้อมูลเดิมใช่หรือไม่?", "พบข้อมูลซ้ำ", () => {
+        doSave();
+      });
+    } else {
+      doSave();
+    }
   };
 
   // --- ระบบ Export PPT ---
@@ -549,7 +700,11 @@
     setTimeout(() => t.classList.remove('show'), 3000);
   };
 
-  window.confirmClear = function() { if(confirm("ต้องการล้างข้อมูลในฟอร์มทั้งหมดใช่หรือไม่?")) location.reload(); };
+  window.confirmClear = function() { 
+    showCustomConfirm("ข้อมูลที่ยังไม่บันทึกจะหายไป ต้องการล้างข้อมูลในฟอร์มทั้งหมดใช่หรือไม่?", "ยืนยันการล้างข้อมูล", () => {
+      location.reload(); 
+    });
+  };
 
   init();
 </script>
