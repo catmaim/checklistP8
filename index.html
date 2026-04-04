@@ -484,7 +484,10 @@
       <div class="checklist-section">
         <div class="section-header" onclick="this.nextElementSibling.classList.toggle('open')" style="border-left: 5px solid ${s.color}">
           <strong>${s.title}</strong>
-          <span>คลิกเพื่อเปิด/ปิด</span>
+          <div>
+            <span id="counter-${s.id}" style="font-size: 14px; font-weight: bold; color: #555; margin-right: 15px;">0/${s.items.length}</span>
+            <span style="font-size: 12px; color: #888;">▼</span>
+          </div>
         </div>
         <div class="section-items">
           ${s.items.map((item, i) => {
@@ -512,40 +515,59 @@
     `).join('');
   }
 
-// --- ฟังก์ชันคำนวณและอัปเดตโอกาสจับกุม ---
+// --- ฟังก์ชันคำนวณและอัปเดตโอกาสจับกุม และ ตัวเลขแต่ละหมวด ---
   window.updateStats = function() {
     let totalItems = 0;
     let checkedItems = 0;
 
     // นับจำนวน Checklist ทั้งหมด และจำนวนที่ทำแล้ว
     SECTIONS.forEach(s => {
+      let sectionTotal = s.items.length;
+      let sectionChecked = 0;
+
       s.items.forEach((_, i) => {
         totalItems++;
-        if (state.checked[`${s.id}_${i}`]) checkedItems++;
+        if (state.checked[`${s.id}_${i}`]) {
+          checkedItems++;
+          sectionChecked++; // นับเฉพาะของหมวดนี้
+        }
       });
+
+      // 🔴 อัปเดตตัวเลข 0/12 ของแต่ละหมวด
+      const counterEl = document.getElementById(`counter-${s.id}`);
+      if (counterEl) {
+        counterEl.textContent = `${sectionChecked}/${sectionTotal}`;
+        // ถ้าทำครบทุกข้อในหมวดนั้น ให้เปลี่ยนตัวเลขเป็นสีเขียว
+        if (sectionChecked > 0 && sectionChecked === sectionTotal) {
+          counterEl.style.color = '#27AE60';
+        } else if (sectionChecked > 0) {
+          counterEl.style.color = '#E67E22'; // สีส้มถ้ากำลังทำ
+        } else {
+          counterEl.style.color = '#555'; // สีเทาถ้ายังไม่เริ่ม
+        }
+      }
     });
 
-    // คำนวณเปอร์เซ็นต์
+    // 🔴 คำนวณเปอร์เซ็นต์หลอดพลัง (ด้านบน)
     const pct = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
 
     const probStatus = document.getElementById('prob-status');
     const probBar = document.getElementById('prob-bar');
 
     if (probStatus && probBar) {
-      probBar.style.width = pct + '%'; // ขยับหลอดสีตาม %
+      probBar.style.width = pct + '%'; 
 
-      // เปลี่ยนสีและข้อความตามเกณฑ์
       if (pct >= 90) {
         probStatus.textContent = `🔥 โอกาสเจอตัวสูงมาก พร้อมเข้าจับกุม! (${pct}%)`;
-        probStatus.style.color = '#27AE60'; // สีเขียว
+        probStatus.style.color = '#27AE60'; 
         probBar.style.background = '#27AE60';
       } else if (pct >= 50) {
         probStatus.textContent = `⚡ มีเบาะแสพอสมควร อยู่ระหว่างแกะรอย (${pct}%)`;
-        probStatus.style.color = '#F39C12'; // สีส้ม
+        probStatus.style.color = '#F39C12'; 
         probBar.style.background = '#F39C12';
       } else {
         probStatus.textContent = `🔍 ข้อมูลยังน้อยเกินไป ต้องสืบสวนเพิ่ม (${pct}%)`;
-        probStatus.style.color = '#E74C3C'; // สีแดง
+        probStatus.style.color = '#E74C3C'; 
         probBar.style.background = '#E74C3C';
       }
     }
