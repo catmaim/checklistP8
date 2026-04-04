@@ -173,6 +173,14 @@
       </div>
     </div>
 
+<div class="card" style="margin-bottom: 15px; text-align: center; border-left: 5px solid #2C3E50;">
+        <h3 style="margin-bottom: 5px; color: #2C3E50;">🎯 ประเมินโอกาสการจับกุมตัว (Probability)</h3>
+        <div id="prob-status" style="font-size: 22px; font-weight: bold; color: #888;">🔍 ข้อมูลยังน้อยเกินไป (0%)</div>
+        <div style="width: 100%; height: 12px; background: #eee; border-radius: 10px; margin-top: 15px; overflow: hidden;">
+           <div id="prob-bar" style="height: 100%; width: 0%; background: #888; transition: width 0.5s ease-in-out, background-color 0.5s;"></div>
+        </div>
+      </div>
+
     <div id="checklist-container" class="checklist-container"></div>
   </div> </div> </div> <div id="toast" class="toast"></div>
   <div id="custom-modal" class="modal-overlay">
@@ -395,6 +403,7 @@
       document.getElementById('login-page').style.display = 'flex';
       document.getElementById('main-app').style.display = 'none';
       document.getElementById('user-display').textContent = ""; // ล้างชื่อทิ้ง
+      updateStats(); // <--- เพิ่มบรรทัดนี้
     }
   });
   
@@ -503,6 +512,45 @@
     `).join('');
   }
 
+// --- ฟังก์ชันคำนวณและอัปเดตโอกาสจับกุม ---
+  window.updateStats = function() {
+    let totalItems = 0;
+    let checkedItems = 0;
+
+    // นับจำนวน Checklist ทั้งหมด และจำนวนที่ทำแล้ว
+    SECTIONS.forEach(s => {
+      s.items.forEach((_, i) => {
+        totalItems++;
+        if (state.checked[`${s.id}_${i}`]) checkedItems++;
+      });
+    });
+
+    // คำนวณเปอร์เซ็นต์
+    const pct = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
+
+    const probStatus = document.getElementById('prob-status');
+    const probBar = document.getElementById('prob-bar');
+
+    if (probStatus && probBar) {
+      probBar.style.width = pct + '%'; // ขยับหลอดสีตาม %
+
+      // เปลี่ยนสีและข้อความตามเกณฑ์
+      if (pct >= 90) {
+        probStatus.textContent = `🔥 โอกาสเจอตัวสูงมาก พร้อมเข้าจับกุม! (${pct}%)`;
+        probStatus.style.color = '#27AE60'; // สีเขียว
+        probBar.style.background = '#27AE60';
+      } else if (pct >= 50) {
+        probStatus.textContent = `⚡ มีเบาะแสพอสมควร อยู่ระหว่างแกะรอย (${pct}%)`;
+        probStatus.style.color = '#F39C12'; // สีส้ม
+        probBar.style.background = '#F39C12';
+      } else {
+        probStatus.textContent = `🔍 ข้อมูลยังน้อยเกินไป ต้องสืบสวนเพิ่ม (${pct}%)`;
+        probStatus.style.color = '#E74C3C'; // สีแดง
+        probBar.style.background = '#E74C3C';
+      }
+    }
+  };
+
   // --- ฟังก์ชันแนบรูปภาพแบบ Base64 (พร้อมบีบอัดภาพอัตโนมัติ) ---
   window.handleFileUpload = function(input, key) {
     const file = input.files[0];
@@ -550,7 +598,9 @@
     reader.readAsDataURL(file); // เริ่มอ่านไฟล์
   };
 
-  window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked; };
+  window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked;
+    updateStats(); // อัปเดตโอกาสจับกุมทุกครั้งที่มีการเช็ค/ไม่เช็ค
+   };
 
   // --- เรียลไทม์ฐานข้อมูล (แสดงตาราง + ปุ่มลบ แบบแบ่งสิทธิ์) ---
   function listenToDatabase() {
@@ -664,7 +714,7 @@
         }
       });
     });
-    
+    updateStats(); // <--- เพิ่มบรรทัดนี้
     showToast("โหลดข้อมูลสำเร็จ");
     // สลับกลับไปหน้าฟอร์มกรอกข้อมูลอัตโนมัติ
     showPage('page-home', document.querySelectorAll('.nav-btn')[0]);
@@ -772,9 +822,22 @@
     setTimeout(() => t.classList.remove('show'), 3000);
   };
 
-  window.confirmClear = function() { 
+  window.confirmClear = function() {
     showCustomConfirm("ข้อมูลที่ยังไม่บันทึกจะหายไป ต้องการล้างข้อมูลในฟอร์มทั้งหมดใช่หรือไม่?", "ยืนยันการล้างข้อมูล", () => {
-      location.reload(); 
+      
+      // 1. ล้างข้อมูลในช่องกรอกด้านบน
+      ['f-id','f-name','f-gender','f-age','f-warrant','f-charge','f-address','f-officer'].forEach(id => {
+        if (document.getElementById(id)) document.getElementById(id).value = '';
+      });
+
+      // 2. ล้างข้อมูลใน Checklist และรูปภาพ
+      state.checked = {}; 
+      state.notes = {}; 
+      state.images = {}; 
+      buildChecklist();
+
+      // 3. สั่งให้อัปเดตหลอดเปอร์เซ็นต์ (จะกลับไปเป็น 0%)
+      updateStats(); 
     });
   };
 
