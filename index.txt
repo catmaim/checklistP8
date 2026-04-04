@@ -3,195 +3,485 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Checklist Old Arrest Warrant — Firebase Edition</title>
+<title>Warrant Database System — ระบบจัดการหมายจับออนไลน์</title>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
-  /* ส่วนตกแต่งหน้าตา (เหมือนเดิมที่คุณชอบ) */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Sarabun', 'Segoe UI', sans-serif; background: #f4f4f4; color: #222; }
-  .app { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-  .header { background: #C0392B; color: white; padding: 1.2rem 1.5rem; border-radius: 12px; margin-bottom: 1.25rem; }
-  .header h1 { font-size: 20px; font-weight: 600; }
-  .suspect-form { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .form-field { display: flex; flex-direction: column; gap: 4px; }
-  .form-field label { font-size: 12px; color: #666; }
-  .form-field input, .form-field textarea { padding: 7px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 8px; }
-  .summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem; }
-  .stat-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 0.75rem 1rem; flex: 1; min-width: 100px; }
-  .stat-val { font-size: 24px; font-weight: 600; }
-  .section-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
-  .tab-btn { padding: 6px 12px; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; }
-  .tab-btn.active { background: #C0392B; color: white; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
-  .btn { padding: 8px 16px; font-size: 13px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; }
-  .btn.primary { background: #C0392B; color: white; border-color: #C0392B; }
-  .btn.success { background: #27AE60; color: white; border-color: #27AE60; }
-  .checklist-section { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden; }
-  .section-header { padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-  .section-items { padding: 0 1rem 0.75rem; display: none; }
+  body { font-family: 'Sarabun', 'Segoe UI', sans-serif; background: #f0f2f5; color: #222; line-height: 1.6; }
+  .app { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem; }
+  .header { background: linear-gradient(135deg, #C0392B, #8E44AD); color: white; padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+  
+  .db-section { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #ddd; }
+  .search-box { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+  .warrant-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .warrant-table th, .warrant-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+  .warrant-table tr:hover { background: #f9f9f9; cursor: pointer; }
+  .badge-status { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: #27AE60; color: white; }
+
+  .suspect-form { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #ddd; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field label { font-size: 12px; font-weight: bold; color: #555; }
+  .form-field input, .form-field textarea { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; }
+  
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 100; background: #f0f2f5; padding: 10px 0; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 13px; }
+  .btn-save { background: #27AE60; color: white; }
+  .btn-ppt { background: #D35400; color: white; }
+  .btn-pdf { background: #2980B9; color: white; }
+  .btn-clear { background: #95a5a6; color: white; }
+
+  .checklist-container { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .checklist-section { background: white; border-radius: 10px; border: 1px solid #ddd; overflow: hidden; }
+  .section-header { padding: 12px 15px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .section-items { padding: 15px; display: none; }
   .section-items.open { display: block; }
-  .check-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
-  .notes-field { width: 100%; padding: 5px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; display: none; margin-top: 5px; }
-  .check-item.show-note .notes-field { display: block; }
-  .toast { position: fixed; bottom: 24px; right: 24px; background: #27AE60; color: white; padding: 10px 18px; border-radius: 8px; opacity: 0; transition: 0.3s; pointer-events: none; }
+  .check-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid #f1f1f1; padding-bottom: 5px; }
+  .notes-field { width: 100%; margin-top: 5px; padding: 5px; font-size: 12px; display: none; border-radius: 6px; border: 1px solid #ddd;}
+  .show-note .notes-field { display: block; }
+  
+  .item-main { display: flex; gap: 10px; align-items: flex-start; width: 100%; }
+  .upload-label { cursor: pointer; font-size: 14px; margin-left: 10px; }
+  .img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px; display: none; }
+  .img-preview.active { display: block; }
+  .loading-spinner { font-size: 11px; color: #E67E22; display: none; margin-left: 5px; }
+  
+  .navbar { background: #2C3E50; padding: 12px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .nav-btn { background: transparent; border: 1px solid white; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-family: inherit; font-size: 14px; }
+  .nav-btn.active { background: #C0392B; border-color: #C0392B; font-weight: bold; }
+  .page { display: none; animation: fadeIn 0.3s; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; background: #333; color: white; opacity: 0; transition: 0.5s; z-index: 1000; }
   .toast.show { opacity: 1; }
-  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+  @media print {
+    .navbar, .db-section, .actions, .tab-btn, .note-btn, .search-box, .upload-label { display: none !important; }
+    body { background: white; }
+    .suspect-form, .checklist-section { border: none; }
+    .section-items { display: block !important; }
+  }
 </style>
 </head>
 <body>
 
+<nav class="navbar">
+  <button class="nav-btn active" onclick="showPage('page-home', this)">📝 บันทึกข้อมูล/ตรวจสอบ</button>
+  <button class="nav-btn" onclick="showPage('page-db', this)">🔍 ค้นหาประวัติ</button>
+</nav>
+
 <div class="app">
   <div class="header">
-    <h1>ระบบเช็คลิสต์หมายจับค้างเก่า (Firebase)</h1>
-    <p>บันทึกและดึงข้อมูลจากถังข้อมูลออนไลน์</p>
+    <h1>ระบบจัดการข้อมูลหมายจับค้างเก่า</h1>
+    <p>หน่วยงานตรวจสอบและบันทึกข้อมูลบุคคล (Central Database)</p>
   </div>
 
-  <div class="suspect-form">
-    <h2>ข้อมูลผู้ต้องหา / Suspect Profile</h2>
-    <div class="form-grid">
-      <div class="form-field"><label>เลขบัตรประชาชน (ใช้ค้นหา/บันทึก)</label><input id="f-id" type="text" placeholder="1-XXXX-XXXXX-XX-X" /></div>
-      <div class="form-field"><label>ชื่อ-นามสกุล</label><input id="f-name" type="text" placeholder="ชื่อ นามสกุล" /></div>
-      <div class="form-field"><label>เพศ</label><input id="f-gender" type="text" placeholder="ชาย / หญิง" /></div>
-      <div class="form-field"><label>อายุ</label><input id="f-age" type="text" placeholder="อายุ" /></div>
-      <div class="form-field"><label>เลขหมายจับ</label><input id="f-warrant" type="text" placeholder="หมายเลข" /></div>
-      <div class="form-field"><label>ข้อหา</label><input id="f-charge" type="text" placeholder="ข้อหา" /></div>
-      <div class="form-field" style="grid-column:1/-1;"><label>ที่อยู่</label><textarea id="f-address" placeholder="ที่อยู่ปัจจุบัน"></textarea></div>
-      <div class="form-field"><label>ผู้บันทึก</label><input id="f-officer" type="text" placeholder="ชื่อเจ้าหน้าที่" /></div>
-      <div class="form-field"><label>วันที่ตรวจสอบ</label><input id="f-date" type="date" /></div>
+  <div id="page-db" class="page">
+    <div class="db-section">
+      <h3>🔍 ค้นหาในถังข้อมูล (Firebase)</h3>
+      <input type="text" class="search-box" id="db-search" placeholder="พิมพ์ ชื่อ-นามสกุล หรือ เลขบัตรประชาชน เพื่อค้นหา..." oninput="filterTable()">
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table class="warrant-table">
+          <thead>
+            <tr>
+              <th>เลขบัตรประชาชน</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th>ข้อหา</th>
+              <th>สถานะ</th>
+              <th>วันที่บันทึก</th>
+            </tr>
+          </thead>
+          <tbody id="db-list">
+            <tr><td colspan="5" style="text-align:center;">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </div> <div id="page-home" class="page active">
+    
+    <div class="actions">
+      <button class="btn btn-save" onclick="saveData()">💾 บันทึก/อัปเดตข้อมูล</button>
+      <button class="btn btn-ppt" onclick="exportToPPT()">📊 ดาวน์โหลด PPT</button>
+      <button class="btn btn-pdf" onclick="window.print()">🖨 พิมพ์/ออก PDF</button>
+      <button class="btn btn-clear" onclick="confirmClear()">🗑 ล้างฟอร์ม</button>
+    </div>
 
-  <div class="summary-bar">
-    <div class="stat-card"><div class="stat-label">ตรวจสอบแล้ว</div><div class="stat-val" id="checked-count" style="color:#27AE60;">0</div></div>
-    <div class="stat-card"><div class="stat-label">ความคืบหน้า</div><div class="stat-val" id="pct-count">0%</div></div>
-  </div>
+    <div class="suspect-form">
+      <h3>📝 ข้อมูลผู้ต้องหา</h3>
+      <div class="form-grid">
+        <div class="form-field"><label>เลขบัตรประชาชน *</label><input id="f-id" type="text" placeholder="ห้ามซ้ำ"></div>
+        <div class="form-field"><label>ชื่อ-นามสกุล</label><input id="f-name" type="text"></div>
+        <div class="form-field"><label>เพศ</label><input id="f-gender" type="text"></div>
+        <div class="form-field"><label>อายุ</label><input id="f-age" type="text"></div>
+        <div class="form-field"><label>เลขหมายจับ</label><input id="f-warrant" type="text"></div>
+        <div class="form-field"><label>ข้อหา</label><input id="f-charge" type="text"></div>
+        <div class="form-field" style="grid-column: span 2;"><label>ที่อยู่</label><textarea id="f-address"></textarea></div>
+        <div class="form-field"><label>ผู้บันทึก</label><input id="f-officer" type="text"></div>
+        <div class="form-field"><label>วันที่ตรวจสอบ</label><input id="f-date" type="date"></div>
+      </div>
+    </div>
 
-  <div class="section-tabs" id="section-tabs"></div>
-
-  <div class="actions">
-    <button class="btn success" onclick="saveData()">💾 บันทึกลงระบบ Firebase</button>
-    <button class="btn primary" onclick="loadFromID()">🔍 ดึงข้อมูลเดิมจากเลขบัตร</button>
-    <button class="btn" onclick="clearAll()">🗑 ล้างหน้าจอ</button>
-  </div>
-
-  <div id="checklist-container"></div>
-</div>
-
-<div class="toast" id="toast"></div>
+    <div id="checklist-container" class="checklist-container"></div>
+  </div> </div> <div id="toast" class="toast"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
-  // ค่า CONFIG จากรูปที่คุณส่งมา
+  import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+  
+  // --- CONFIG ---
   const firebaseConfig = {
     apiKey: "AIzaSyDTmoYzCQjf3qN2XgowoBK0wLm5u5qV0AM",
     authDomain: "checklistp8-531ab.firebaseapp.com",
-    databaseURL: "https://checklistp8-531ab-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "checklistp8-531ab",
     storageBucket: "checklistp8-531ab.firebasestorage.app",
     messagingSenderId: "675371072034",
-    appId: "1:675371072034:web:c286c05cf0c98e6f1b287b",
-    measurementId: "G-FWGL3JYT5J"
+    appId: "1:675371072034:web:c286c05cf0c98e6f1b287b"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
-  // ข้อมูล Checklist (10 หมวด)
+  // ข้อมูล Checklist 10 หมวด
   const SECTIONS = [
-    { id:1, color:"#8E44AD", title:"1. ทะเบียนราษฎร์", items:["ผู้ต้องหา — รายละเอียดบัตรประชาชน","คู่สมรส/แฟน","บุตร","พ่อแม่","พี่น้อง","ปู่/ย่า/ตา/ยาย","ลูก/ปิ/ยา/อา","ลูกน้อง","ลูกพี่ลูกน้อง","เพื่อนนิด","เพื่อนร่วมงาน","Link Chart (สรุป)"] },
-    { id:2, color:"#E74C3C", title:"2. ประวัติหมายจับ", items:["ตรวจสอบประวัติอาชญากรรม","ฐานะทำงาน","ทะเบียนราษฎร์เดิม","DXC ตรวจสอบ","ผู้รับโอนทรัพย์สิน","สำเนาล้มละลาย","ประวัติสั่งฟ้อง","ประวัติต่อสู้คดี","พฤติกรรม","Time line (สรุป)"] },
-    { id:3, color:"#27AE60", title:"3. ใบขับขี่/ยานพาหนะ", items:["ใบอนุญาตขับขี่","ยานพาหนะ GIS","ตรวจสอบประเภทรถ","การทำประกันสุขภาพ","มอเตอร์ไซค์/ตำหนิ","สมาชิกบัตรสินค้า","วันสิ้นสุดสมาชิก","Link Chart (สรุป)"] },
-    { id:4, color:"#2980B9", title:"4. การเดินทาง/ด่านสกัด", items:["CCTV ด่านผ่านแดน","ประวัติที่พักโรงแรม","ช่องทางผ่านแดน","ระบบ PIBIC","สตม. หนังสือเดินทาง","ตม.30 (อพาร์ทเม้นท์)","หน่วยงานบริการ","เส้นทางเดินทาง","Link Chart (สรุป)"] },
-    { id:5, color:"#F39C12", title:"5. ประกัน/ภาษี", items:["ประกันสังคม","กรมสรรพากร","รพ.สังกัด","กองทุนบำเหน็จ","รายได้/สินทรัพย์","สัญญาเช่าที่ดิน","การประกาศสมัครงาน","โครงสร้างอำนาจ","Link Chart (สรุป)"] },
-    { id:6, color:"#E74C3C", title:"6. การสื่อสาร", items:["เลขมือถือ AIS/DTAC/TRUE","วันจดทะเบียน","บริการพิเศษ SMS","IMEI/IMSI","รุ่น/สี มือถือ","รายการโทรเข้า-ออก","พิกัดเสาสัญญาณ","Link Chart (สรุป)"] },
-    { id:7, color:"#16A085", title:"7. การเงิน/ธนาคาร", items:["การเปิดบัญชี","สินเชื่อ/กู้ยืม","OTP/SMS Alert","Statement","รายการ ATM","CCTV บริเวณ ATM","Internet Banking","IP Address","Link Chart (สรุป)"] },
-    { id:8, color:"#8E44AD", title:"8. บัตรเครดิต/สวัสดิการ", items:["บัตรเดบิต/เครดิต","สถานที่รูดบัตร","TRUE Wallet/Line Pay","เครื่องรูด/CCTV","บัตรสวัสดิการแห่งรัฐ","ร้านค้าที่เข้าร่วม","Link Chart (สรุป)"] },
-    { id:9, color:"#2980B9", title:"9. Social Network", items:["FB/IG/Twitter/Line","ค้นหาชื่อจาก Google","เพื่อนใน Social","พิกัดการโพสต์","ภาพ/วิดีโอ ที่อัปโหลด","IP Address Social","เน็ตบ้านที่ใช้","Link Chart (สรุป)"] },
-    { id:10, color:"#E67E22", title:"10. DELIVERY/SHOPPING", items:["การสั่งซื้อ DELIVERY","อีเมล์ที่ใช้สั่ง","บัญชี LAZADA/Shopee","ที่อยู่ผู้รับสินค้า","เลข KERRY/Line Man","นำเข้าต่างประเทศ","Link Chart (สรุป)"] }
+    {
+      id:1, color:"#8E44AD", title:"1. ทะเบียนราษฎร์",
+      items:[
+        "ผู้ต้องหา — รายละเอียดบัตรประชาชนอายุ ย้อนหลัง รูปถ่ายแบบ 1.2",
+        "คู่สมรส/แฟน — รายละเอียดทะเบียนบ้านปัจจุบัน การย้ายที่อยู่",
+        "บุตร — ตรวจสอบการเปลี่ยนแปลงโน้ตสกุล นามสกุล รูปปกปิด/ทุกครั้ง",
+        "พ่อแม่ — ตรวจสอบโดยบิดามารดา บุตรผู้เยาว์/ปัจจุบัน",
+        "พี่น้อง",
+        "ปู่/ย่า/ตา/ยาย — ตรวจสอบการรับรองทะเบียน ปชช. สถานะ ครบถ้วน",
+        "ลูก/ปิ/ยา/อา — ตรวจสอบเอกสารโทรศัพท์ที่มีวันเกิด/ทำประชาสัมพันธ์",
+        "ลูกน้อง/ผู้ใต้บังคับบัญชา — ตรวจสอบทะเบียนบ้าน",
+        "ลูกพี่ลูกน้อง/ลูกหมู่ — พิสูจน์บ้านที่อยู่ปัจจุบัน ย้ายภาษา แผนที่",
+        "เพื่อนนิด — พิสูจน์ทราบสถานที่ทำงาน รายละเอียด ประวัติการทำงาน",
+        "เพื่อนร่วมงาน",
+        "จัดทำ Link Chart ครบสมัครพัก 1-11 พร้อมรายชื่อยืนยัน (สรุป)"
+      ]
+    },
+    {
+      id:2, color:"#E74C3C", title:"2. ประวัติหมายจับ/ต้องโทษ/การกระทำผิด",
+      items:[
+        "ตรวจสอบประวัติอาชญากรรม polis.crime.pdc จัดพิมพ์คุณหมายใหม่/สืบค้น",
+        "ตรวจสอบภาษา/ฐานะทำงานจัดจำนวนเอกสารก้าวดำเนินเคดีมือหรือไม่จากระบบ",
+        "ตรวจสอบจากระบบทะเบียนราษฎร์ที่อยู่ผ่านเดิม โดยการ อัลกอร์ ออนเส้นตัดวงรอบ",
+        "ตรวจสอบจากระบบทะเบียนราษฎร์อยู่ไม่เคลื่อน ตาม DXC ด้วยตัวตรวจสอบ",
+        "ตรวจสอบรายละเอียดการกฎหมายเดิม นี่คือ ผู้รับโอนทรัพย์สิน/คดี จาก DXC",
+        "ตรวจสอบเกี่ยวกับสำเนาล้ม/ฟ้องต่อ ตรวจสอบว่า คุณจะเข้าใจว่า อย่างไร",
+        "ตรวจสอบประวัติสั่งฟ้อง/ไม่ฟ้องต่อ ศาล/ตำรวจ กฎหมาย ดีในกรณี/จะอย่างไร",
+        "ตรวจสอบประวัติต่อสู้คดี รายละเอียดตัดสินข้อ ศาล หมาย กฎหมาย ดีขึ้น",
+        "ตรวจสอบประวัติพฤติกรรม ทดสอบ วันเวลา วิธีการ กฎหมาย ดีขึ้น",
+        "รวมสรุปจัดทำ Time line เชื่อมโยงประวัติการกระทำผิดต่อเนื่อง (สรุป)"
+      ]
+    },
+    {
+      id:3, color:"#27AE60", title:"3. ใบขับขี่/ยานพาหนะ/ประกันภัย",
+      items:[
+        "ตรวจสอบประวัติใบอนุญาตขับขี่ที่ผู้ต้องหาได้รับ ขีวรา/อดรีค",
+        "ตรวจสอบ/ใบอนุญาต/ไหนอดีตผู้ขับไม่อนุญาต สค่านหน้าเสือ ต้องขออนุญาตใหม่",
+        "ตรวจสอบยานพาหนะที่ผู้ต้องหาจากระบบ GIS จนถึงจ่าง กรณีมีใบอนุญาตขับขี่อ้างอิง",
+        "ตรวจสอบจำนวน/ประเภท/สิ่งที่เลือก/การเดิน/แอบแฝง รถ บ้าน กรม คู่สมรส",
+        "ตรวจสอบประเภท/ครอบครัว/การก่อสร้าง/ส่วนกลาง ย้าย โอกรมการ ที่ ซื้อจัดขี้ ทีละ",
+        "ตรวจสอบ/จำนวน/เอกสาร/การเดินทาง หน้าบัตร การประกันสุขภาพ ย้ายถิ่น ก.จ.ก.",
+        "ตรวจสอบมอเตอร์ไซค์ ตำนิพิเศษน การประกันสุขภาพ จาก บริษัทประกันภัย",
+        "ตรวจสอบการเป็นสมาชิกบัตรสิน คำนึงฝั่ง นโยบายจะดำเนินการ เส้นทาง ประกัน",
+        "ตรวจสอบวันสิ้นสุดหรือเข้ามา ค้นหา สมาชิก น.ม./แผน ล ประกัน บริษัทนะ",
+        "รวมสรุปจัดทำ link Chart ใบอนุญาตขับขี่/ยานพาหนะ/ประกัน บัง จุด รายย่อยหา (สรุป)"
+      ]
+    },
+    {
+      id:4, color:"#2980B9", title:"4. การเดินทาง/หนังสือเดินทาง/ด่านสกัด",
+      items:[
+        "ตรวจสอบหมายผ่านแดน/จังหวัดปัจจุบันจากระบบ CCTV ทุกถ กทม เข้าออก",
+        "ตรวจสอบคนเดิน/พักที่บ้านและสิ่งอำนวย มาไว้/ไปส่ง ยานพาหนะ/บริการ/ส่ง",
+        "ตรวจสอบ/รอง/สาย รอยลั่ง ตับลังกา สำนักงาน ช่องทาง ช่วงสงกรานต์",
+        "ตรวจสอบประวัติ/ผ่านพิธีอาณาเขต/นอกประเทศ วันเวลา ช่องทาง จากระบบ PIBIC",
+        "ตรวจสอบประวัติการทำหนังสือเดินทาง/ออกนอกประเทศ วันเวลา ช่องทาง จาก สตม.",
+        "ตรวจสอบฐานข้อมูลเข้าพักโรงแรม บ้านเช่า อพาร์ทเม้นท์ผู้ต้องหา จากระบบ ตม.30",
+        "ตรวจสอบข้อมูลการได้รับ/รับบริการการสัมภาษณ์/หน่วยงานบริการ บริการ/จาก",
+        "ตรวจสอบเส้นทางเดินทางของผู้ต้องหา ที่อยู่/รูป/สู่/คำนิ่งผล บัญชี ท่า พร.",
+        "ตรวจสอบการเดินทางด่านสกัด วันเวลาโทรศัพท์ ตรวจพิสูจน์ขณะ ท้าย/พลายทาง",
+        "รวมสรุปข้อมูลการเดินทางของผู้ต้องหาถึงถิ่นอาศัยแต่ละ ด่านสกัด (สรุป)"
+      ]
+    },
+    {
+      id:5, color:"#F39C12", title:"5. ประกันสังคม/ประกันสุขภาพ/ประกันชีวิต/ภาษี",
+      items:[
+        "ตรวจสอบประกันสังคมงานจากระบบประกันสังคม ทำงาน/ออก/รับสิน/บัญชี",
+        "ตรวจสอบข้อมูลธุรกิจ/ประกอบกิจการ/สหกิจ/ขายของออนไลน์ จากระบบกรมสรรพากร",
+        "ตรวจสอบข้อมูลของผู้ที่กำลังจะดำเนินคดีประกันสังคม ตาม รพ.สังกัด ธุรกิจ ภาษี",
+        "ตรวจสอบสถานะกองทุนบำเหน็จบำนาญ ผู้สิทธิ์/ขายสิน/บัญชี ทะเบียน ธุรกิจ ภาษี",
+        "ตรวจสอบข้อมูลรายนามสกุล/สมุด/ข้อมูล เลขทะเบียน ภาษี ธนาคาร ผู้ต้องหา",
+        "ตรวจสอบ/รายได้/สินทรัพย์/ทรัพย์สินผู้ต้องหา ที่อยู่/ชื่อ/มือถือ ทะเบียนต่างๆ",
+        "ตรวจสอบสัญญาเช่า/ผู้เช่า/สัญชาติ ซื้อขายที่ดิน ที่อยู่/ชื่อ/มือถือ บุคคล นามสกุล",
+        "ตรวจสอบการประกาศ/สมัครงาน งาน กิจการ/ผู้ประกอบ/งาน บัญชี ต่อเนื่อง",
+        "ตรวจสอบประวัติในระบบประกัน/ธุรกิจ ที่อยู่ประสิทธิ์ มณฑล ภาษี ประกันสุขภาพ",
+        "ตรวจสอบโครงสร้างอำนาจ/จัดตั้ง/ดำเนินงาน หน่วยงาน กิจการ ภาษี ระบบ",
+        "ตรวจสอบในระบบประกาศ/กรมการ/กิจการ ประกัน ภาษี ธุรกิจ แรงงาน",
+        "ตรวจสอบในระบบประกาศ/กรมการ/ดำเนินงาน เลข ผู้ประกอบ/ภาษี",
+        "รวมสรุปจัดทำ Link Chart เชื่อมโยงประกันสังคม/สุขภาพ/ชีวิต/ภาษี ของผู้ต้องหา (สรุป)"
+      ]
+    },
+    {
+      id:6, color:"#E74C3C", title:"6. การสื่อสาร/โทรศัพท์/อินเตอร์เน็ต",
+      items:[
+        "ตรวจสอบทะเบียนเลขมือถือของผู้ต้องหาหรือผู้ใช้ AIS,DTAC,TRUE,CAT,TOT",
+        "ตรวจสอบวันจดทะเบียน ประมาทหรือเติมเงิน ที่อยู่ ผู้ส่งสัญญาณ",
+        "ตรวจสอบเลขหมายการใช้งาน ระบบ กย.กย โน การสรรหาบริการพิเศษ SMS ฯ",
+        "ตรวจสอบสมมติฐาน IMEI,IMSI และหมายเลขเสาอากาศมือถือ เก็บข้อมูลการสื่อสาร",
+        "ตรวจสอบสมมติฐาน อีมู อุน รุ่น สี จากหมายเลข IMEI มือถือของผู้ต้องหา",
+        "ตรวจสอบรายการการใช้โทรศัพท์มือถือ การโทรเข้าออก สายเข้าออก การใช้ข้อมูล",
+        "ตรวจสอบพิกัดสัญญาณเสาอากาศโทรศัพท์ผู้ต้องหา จาก LAC,CID",
+        "ตรวจสอบลายมือ ตัวเลข รายการ ร้าน/จัดการเอกสารโทรศัพท์ผ่านทางโน้ตบุ๊ก",
+        "ตรวจสอบรายการ/ตัวเลข/รายงานเข้าออก การ ใช้ การโทร. ที่ สินค้า ไม่ ร้านค้า",
+        "ตรวจสอบรายการจดทะเบียนโทรศัพท์ที่ประจำตัวบัตร ลักษณะ ลงทะเบียน",
+        "ตรวจสอบรายการ/จดทะเบียน/รหัส มือถือ แผนที่ บัตร สิทธิ/พิเศษ บัตร อ.กย.",
+        "ตรวจสอบรายการรายละเอียดการกระทำผิดของผู้ต้องหา เพื่อหาที่อยู่ แฟน พ่อ แม่ ลูก ญาติ",
+        "จัดทำ 12 เบอร์ Link Chart วิเคราะห์หาแหล่งที่หมายที่อยู่ พฤติกรรมผู้ต้องหา (สรุป)"
+      ]
+    },
+    {
+      id:7, color:"#16A085", title:"7. การเงิน/ธนาคาร/ATM/Internet Banking",
+      items:[
+        "ตรวจสอบการเปิดบัญชีธนาคาร บัญชีธนาคาร ต้องหา มีกีบัญชี สาขา บัญชีอะไร",
+        "ตรวจสอบรายละเอียดการกู้ยืม สินเชื่อ บัญชีธนาคาร ต้องหา ต่อเนื่อง",
+        "ตรวจสอบข้อมูลผู้ต้องหาที่ให้บริการทางการเงิน ที่อยู่ มือถือ ติดต่อ",
+        "ตรวจสอบรายละเอียดหักบัญชีที่ผู้กระทำผิดทำที่ธนาคาร OTP",
+        "ตรวจสอบรายละเอียดหักบัญชีที่ผู้กระทำผิดทำที่ธนาคาร SMS ALERT",
+        "ตรวจสอบข้อมูลผู้กระทำผิดที่ธนาคาร ต่อ สมาชิกของผู้ต้องหา Online",
+        "ตรวจสอบข้อมูล Statement ตรวจสอบการไหลเงิน บัญชี Online",
+        "ตรวจสอบรายละเอียดรายการ ATM ของผู้ต้องหา",
+        "ตรวจสอบลำดับเวลา ATM ฝากถอน กล้อง CCTV บริเวณ ATM",
+        "ตรวจสอบเปิดบริการ Internet banking บัญชีธนาคารของผู้ต้องหา",
+        "ตรวจสอบเลือกข้อมูลผู้ต้องหาที่ให้ร่วมกับธนาคาร ที่อยู่ มือถือ อีเมล์",
+        "ตรวจสอบข้อมูล IP Adress ที่เข้าใช้ Internet Banking",
+        "ตรวจสอบข้อมูลการติดต่อผู้ต้องหา Call Center ธนาคาร",
+        "รวมสรุปจัดทำ Link Chart เชื่อมโยงบัญชีธนาคารของผู้ต้องหา (สรุป)"
+      ]
+    },
+    {
+      id:8, color:"#8E44AD", title:"8. บัตรเดบิต/บัตรเครดิต/E-MONEY/บัตรสวัสดิการ",
+      items:[
+        "ตรวจสอบรายการบัตรเดบิต/ครีดิต ข้อมูลผู้ต้องหาที่ให้บริการ ที่อยู่ มือถือ ติดต่อ",
+        "ตรวจสอบรายละเอียดการใช้บัตรเดบิต รายการใช้ สถานที่ ที่ตั้งเครื่องรูดบัตร",
+        "ตรวจสอบรายละเอียดการใช้บัตรเครดิต รายการใช้ สถานที่ ที่ตั้งเครื่องรูดบัตร",
+        "ตรวจสอบผู้ต้องหา TRUE Wallet, Line Pay, ระบบ E-MONEY",
+        "ตรวจสอบข้อมูลผู้ต้องหาที่ได้รับ/ให้บริการ บัตรเดบิต/ครีดิต",
+        "ตรวจสอบรายละเอียดการใช้บัตร สถานที่ เครื่องรูด กล้อง CCTV",
+        "ตรวจสอบรายละเอียดบัตรสวัสดิการแห่งรัฐ เลขบัตร สถานที่ที่ใช้",
+        "ตรวจสอบรายละเอียดการใช้บัตรสวัสดิการแห่งรัฐ ร้านค้า ATM",
+        "ตรวจสอบรายละเอียดการใช้บัตรสวัสดิการ จากร้านค้าที่เข้าร่วมโครงการ",
+        "รวมสรุปจัดทำ Link Chart เชื่อมโยงบัตรทรัพยากรที่ใช้บริการ ของผู้ต้องหา (สรุป)"
+      ]
+    },
+    {
+      id:9, color:"#2980B9", title:"9. Social Network",
+      items:[
+        "ตรวจสอบการเปิดใช้งาน Facebook, Instagram, Twitter, Line, Wechat ฯลฯ",
+        "ตรวจสอบข้อมูลสุก ชื่อไทย/ชื่อ/ภาษาอังกฤษผู้ต้องหา จาก Google ฯลฯ",
+        "ตรวจสอบรายละเอียด/ข้อมูล เพื่อนที่ยินยอม Social ไอดี",
+        "ตรวจสอบความเคลื่อนไหว Social โพสต์ โค้ด สถานที่ผู้ต้องหา",
+        "ตรวจสอบภาพ รูปถ่าย ภาพวีดีโอ อัพโหลด/ลบ ตำแหน่ง Social",
+        "ตรวจสอบรายการ/สวัสดิการ หน้า Social ที่ผู้ต้องหา",
+        "ตรวจสอบการใช้งาน Social ของผู้ต้องหา โดยทางคอมพิวเตอร์",
+        "ตรวจสอบ IP Address จากการที่ผู้ต้องหาเข้าถึงมือถือ คอมฯ เข้าใช้ Social",
+        "ตรวจสอบ IP Adress หน้าผู้ต้องหาจากผู้ให้บริการอินเทอร์เน็ต",
+        "ตรวจสอบ Social Network ที่ผู้ต้องหาจากที่ให้บริการอินเทอร์เน็ตบ้านของ",
+        "รวมสรุปจัดทำ Link Chart รายละเอียด Social Network ผู้ต้องหา (สรุป)"
+      ]
+    },
+    {
+      id:10, color:"#E67E22", title:"10. DELIVERY/SHOPPING/SHIPPING",
+      items:[
+        "ตรวจสอบรายการสั่งซื้อของผู้ต้องหาที่ผ่านการให้บริการ DELIVERY ส่งสินค้า",
+        "ตรวจสอบรายการสั่งซื้อของผู้ต้องหาที่ผ่านการให้บริการ DELIVERY บ้านโน้ตบุ๊ก",
+        "ตรวจสอบรายการสั่งซื้อจากบริการ DELIVERY ผ่านโทรศัพท์/อีเมล์มือถือ หรือ IP",
+        "ตรวจสอบรายการสั่งซื้อผ่านบริการ DELIVERY บัญชีธนาคาร LAZADA ฯลฯ",
+        "ตรวจสอบรายการที่ผู้ต้องหาที่ให้บริการ ที่อยู่ มือถือ บัตร สิ่งต้องการ",
+        "ตรวจสอบบัญชีผู้ต้องหา บัตรเดบิต บัตรเครดิต",
+        "ตรวจสอบรายการ/สวัสดิการ ที่อยู่/ชื่อ บริการ บัญชีธนาคาร",
+        "ตรวจสอบสินค้า/รายการ/ดำเนินการ ชื่อผู้ต้องหา นำเที่ยว มูลค่า ทะเบียน",
+        "ตรวจสอบรายการ/ชื่อผู้ต้องหา เลขที่ KERRY, Line Man ฯลฯ",
+        "ตรวจสอบรายการ/ใบรับบริการ DELIVERY ผ่านทางบัตรสวัสดิการ บัญชีธนาคาร",
+        "ตรวจสอบรายการ/ใบรับบริการ DELIVERY จากต่างประเทศ มีรายละเอียด/นำเข้า",
+        "รวมสรุปจัดทำ Link Chart ข้อมูลการสั่งซื้อ/บริการ DELIVERY ผู้ต้องหา (สรุป)"
+      ]
+    }
   ];
 
-  let state = { checked: {}, notes: {} };
+  let state = { checked: {}, notes: {}, images: {} };
+  let allRecords = [];
 
-  // --- UI Functions ---
+  // --- เริ่มต้นระบบ ---
   window.init = function() {
-    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-    buildTabs();
     buildChecklist();
+    listenToDatabase();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   };
 
-  window.buildTabs = function() {
-    const c = document.getElementById('section-tabs');
-    let html = '<button class="tab-btn active" onclick="filterSection(\'all\',this)">ทั้งหมด</button>';
-    SECTIONS.forEach(s => html += `<button class="tab-btn" onclick="filterSection(${s.id},this)">${s.id}</button>`);
-    c.innerHTML = html;
-  };
-
-  window.filterSection = function(id, btn) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  // --- ระบบสลับหน้า ---
+  window.showPage = function(pageId, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
     btn.classList.add('active');
-    document.querySelectorAll('.checklist-section').forEach(el => el.style.display = (id === 'all' || el.dataset.id == id) ? 'block' : 'none');
   };
 
-  window.buildChecklist = function() {
-    const c = document.getElementById('checklist-container');
-    let html = '';
-    SECTIONS.forEach(s => {
-      const total = s.items.length;
-      const done = s.items.filter((_, i) => state.checked[`${s.id}_${i}`]).length;
-      const pct = total > 0 ? Math.round(done/total*100) : 0;
-      html += `<div class="checklist-section" data-id="${s.id}">
-        <div class="section-header" onclick="toggleSection(${s.id})" style="border-left:4px solid ${s.color};">
-          <h3>${s.title}</h3>
-          <span class="stat-label" id="badge-${s.id}">${done}/${total}</span>
+  // --- สร้างหน้าตา Checklist ---
+  function buildChecklist() {
+    const container = document.getElementById('checklist-container');
+    container.innerHTML = SECTIONS.map(s => `
+      <div class="checklist-section">
+        <div class="section-header" onclick="this.nextElementSibling.classList.toggle('open')" style="border-left: 5px solid ${s.color}">
+          <strong>${s.title}</strong>
+          <span>คลิกเพื่อเปิด/ปิด</span>
         </div>
-        <div class="section-items" id="items-${s.id}">`;
-      s.items.forEach((item, i) => {
-        const key = `${s.id}_${i}`;
-        const isChecked = state.checked[key] || false;
-        html += `<div class="check-item" id="ci-${key}">
-          <input type="checkbox" id="cb-${key}" ${isChecked?'checked':''} onchange="toggle('${key}',${s.id})" />
-          <div style="flex:1;">
-            <label for="cb-${key}">${item}</label>
-            <textarea class="notes-field" id="note-${key}" onchange="saveNote('${key}',this.value)">${state.notes[key]||''}</textarea>
-          </div>
-          <button onclick="toggleNote('${key}')">📝</button>
-        </div>`;
-      });
-      html += '</div></div>';
+        <div class="section-items">
+          ${s.items.map((item, i) => {
+            const key = `${s.id}_${i}`;
+            return `
+              <div class="check-item" id="ci-${key}" style="flex-direction: column;">
+                <div class="item-main">
+                  <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')">
+                  <div style="flex:1"><label for="cb-${key}">${item}</label></div>
+                  
+                  <span id="loader-${key}" class="loading-spinner">กำลังอัปโหลด...</span>
+                  <label class="upload-label" title="แนบรูปภาพ">
+                    📷 <input type="file" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
+                  </label>
+                  
+                  <button onclick="document.getElementById('ci-${key}').classList.toggle('show-note')" style="background:none;border:none;cursor:pointer;">📝</button>
+                </div>
+                <img id="img-${key}" class="img-preview">
+                <textarea class="notes-field" id="note-${key}" onchange="state.notes['${key}']=this.value" placeholder="หมายเหตุ..."></textarea>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // --- ฟังก์ชันอัปโหลดรูปภาพ ---
+  window.handleFileUpload = async function(input, key) {
+    const file = input.files[0];
+    if (!file) return;
+    const id = document.getElementById('f-id').value;
+    if (!id) return alert("กรุณาใส่เลขบัตรประชาชนก่อนอัปโหลดรูป เพื่อใช้เป็นรหัสอ้างอิง");
+
+    const loader = document.getElementById(`loader-${key}`);
+    const preview = document.getElementById(`img-${key}`);
+    
+    try {
+      loader.style.display = 'inline';
+      const fileRef = ref(storage, `warrants/${id}/${key}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      
+      state.images[key] = url;
+      preview.src = url;
+      preview.classList.add('active');
+      showToast("อัปโหลดรูปสำเร็จ ✓");
+    } catch (e) {
+      alert("อัปโหลดพลาด: " + e.message);
+    } finally {
+      loader.style.display = 'none';
+    }
+  };
+
+  window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked; };
+
+  // --- ระบบดึงข้อมูลแบบ Real-time ---
+  function listenToDatabase() {
+    const q = query(collection(db, "warrants"), orderBy("profile.date", "desc"));
+    onSnapshot(q, (snapshot) => {
+      allRecords = [];
+      const html = snapshot.docs.map(doc => {
+        const data = doc.data();
+        allRecords.push(data);
+        const checkedCount = Object.values(data.checked || {}).filter(v => v).length;
+        return `
+          <tr onclick="loadRecord('${data.profile.id}')">
+            <td><strong>${data.profile.id}</strong></td>
+            <td>${data.profile.name}</td>
+            <td>${data.profile.charge}</td>
+            <td><span class="badge-status">ทำแล้ว ${checkedCount} รายการ</span></td>
+            <td>${data.profile.date}</td>
+          </tr>
+        `;
+      }).join('');
+      document.getElementById('db-list').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">ไม่พบข้อมูล</td></tr>';
     });
-    c.innerHTML = html;
+  }
+
+  // ค้นหาในตาราง
+  window.filterTable = function() {
+    const val = document.getElementById('db-search').value.toLowerCase();
+    const rows = document.querySelectorAll('#db-list tr');
+    rows.forEach(row => {
+      row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+    });
   };
 
-  window.toggleSection = function(id) { document.getElementById(`items-${id}`).classList.toggle('open'); };
-  window.toggle = function(key, sid) {
-    state.checked[key] = document.getElementById(`cb-${key}`).checked;
-    updateStats();
-  };
-  window.toggleNote = function(key) { document.getElementById(`ci-${key}`).classList.toggle('show-note'); };
-  window.saveNote = function(key, val) { state.notes[key] = val; };
+  // ดึงข้อมูลมาใส่ฟอร์ม
+  window.loadRecord = function(id) {
+    const data = allRecords.find(r => r.profile.id === id);
+    if (!data) return;
+    
+    Object.entries(data.profile).forEach(([k, v]) => {
+      const el = document.getElementById(`f-${k}`);
+      if (el) el.value = v;
+    });
 
-  window.updateStats = function() {
-    let total = 0, done = 0;
-    SECTIONS.forEach(s => s.items.forEach((_, i) => { total++; if(state.checked[`${s.id}_${i}`]) done++; }));
-    document.getElementById('checked-count').textContent = done;
-    document.getElementById('pct-count').textContent = `${total>0?Math.round(done/total*100):0}%`;
+    state.checked = data.checked || {};
+    state.notes = data.notes || {};
+    state.images = data.images || {};
+
+    SECTIONS.forEach(s => {
+      s.items.forEach((_, i) => {
+        const key = `${s.id}_${i}`;
+        const cb = document.getElementById(`cb-${key}`);
+        const nt = document.getElementById(`note-${key}`);
+        const img = document.getElementById(`img-${key}`);
+
+        if(cb) cb.checked = state.checked[key] || false;
+        if(nt) nt.value = state.notes[key] || '';
+        
+        if(img) {
+          if(state.images[key]) {
+            img.src = state.images[key];
+            img.classList.add('active');
+          } else {
+            img.src = '';
+            img.classList.remove('active');
+          }
+        }
+      });
+    });
+    
+    showToast("โหลดข้อมูลสำเร็จ");
+    // สลับกลับไปหน้าฟอร์มกรอกข้อมูลอัตโนมัติ
+    showPage('page-home', document.querySelectorAll('.nav-btn')[0]);
   };
 
-  window.showToast = function(msg) {
-    const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  };
-
-  // --- FIREBASE LOGIC ---
+  // --- ระบบบันทึก ---
   window.saveData = async function() {
-    const idNumber = document.getElementById('f-id').value;
-    if (!idNumber) return alert("กรุณาใส่เลขบัตร ปชช. เพื่อเป็นรหัสอ้างอิง");
+    const id = document.getElementById('f-id').value;
+    if (!id) return alert("กรุณากรอกเลขบัตรประชาชน");
+
+    const docRef = doc(db, "warrants", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      if (!confirm("เลขบัตรนี้มีข้อมูลอยู่แล้ว คุณต้องการบันทึกอัปเดตทับข้อมูลเดิมใช่หรือไม่?")) return;
+    }
 
     const data = {
       profile: {
-        id: idNumber,
+        id: id,
         name: document.getElementById('f-name').value,
         gender: document.getElementById('f-gender').value,
         age: document.getElementById('f-age').value,
@@ -202,38 +492,64 @@
         date: document.getElementById('f-date').value
       },
       checked: state.checked,
-      notes: state.notes
+      notes: state.notes,
+      images: state.images
     };
 
     try {
-      showToast('กำลังบันทึก...');
-      await setDoc(doc(db, "warrants", idNumber), data);
-      showToast('บันทึกสำเร็จ ✓');
-    } catch (e) { alert("บันทึกไม่สำเร็จ: " + e.message); }
+      await setDoc(docRef, data);
+      showToast("บันทึกข้อมูลลงฐานข้อมูลแล้ว ✓");
+    } catch (e) { alert("Error: " + e.message); }
   };
 
-  window.loadFromID = async function() {
-    const idNumber = document.getElementById('f-id').value;
-    if (!idNumber) return alert("ใส่เลขบัตร ปชช. เพื่อค้นหา");
+  // --- ระบบ Export PPT ---
+  window.exportToPPT = function() {
+    let pptx = new PptxGenJS();
+    let slide = pptx.addSlide();
+
+    const name = document.getElementById('f-name').value || "ไม่ระบุชื่อ";
+
+    slide.addText(`สรุปข้อมูลผู้ต้องหา: ${name}`, { x: 0.5, y: 0.5, fontSize: 24, color: 'C0392B', bold: true });
     
-    showToast('กำลังดึงข้อมูล...');
-    const docSnap = await getDoc(doc(db, "warrants", idNumber));
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      Object.entries(data.profile).forEach(([k,v]) => {
-        const el = document.getElementById(`f-${k}`); if (el) el.value = v;
-      });
-      state.checked = data.checked || {};
-      state.notes = data.notes || {};
-      buildChecklist();
-      updateStats();
-      showToast('โหลดข้อมูลสำเร็จ ✓');
-    } else {
-      alert("ไม่พบข้อมูลเลขบัตรนี้ในระบบ");
+    let rows = [
+      ["หัวข้อ", "รายละเอียด"],
+      ["เลขบัตรประชาชน", document.getElementById('f-id').value],
+      ["เลขหมายจับ", document.getElementById('f-warrant').value],
+      ["ข้อหา", document.getElementById('f-charge').value],
+      ["ผู้บันทึก", document.getElementById('f-officer').value]
+    ];
+
+    slide.addTable(rows, { x: 0.5, y: 1.2, w: 9, border: { pt: 1, color: 'BBBBBB' }, fontSize: 14 });
+    
+    const done = Object.values(state.checked).filter(v => v).length;
+    slide.addText(`ความคืบหน้าการตรวจสอบ: ทำแล้ว ${done} รายการ`, { x: 0.5, y: 4.5, fontSize: 16 });
+
+    for (const key in state.images) {
+      if (state.images[key]) {
+        let sImg = pptx.addSlide();
+        const sectionId = key.split('_')[0];
+        const itemIdx = key.split('_')[1];
+        
+        const sec = SECTIONS.find(s => s.id == sectionId);
+        const itemTitle = sec ? sec.items[itemIdx] : "หลักฐานเพิ่มเติม";
+
+        sImg.addText(`ภาพประกอบ: ${itemTitle}`, { x:0.5, y:0.3, fontSize:18, bold:true });
+        sImg.addImage({ path: state.images[key], x:0.5, y:0.8, w:6, h:4 });
+        
+        if(state.notes[key]) {
+          sImg.addText(`หมายเหตุ: ${state.notes[key]}`, { x:0.5, y:5.0, fontSize:12 });
+        }
+      }
     }
+    pptx.writeFile({ fileName: `รายงาน_${name}.pptx` });
   };
 
-  window.clearAll = function() { if(confirm('ล้างหน้าจอ?')) location.reload(); };
+  window.showToast = function(msg) {
+    const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  };
+
+  window.confirmClear = function() { if(confirm("ต้องการล้างข้อมูลในฟอร์มทั้งหมดใช่หรือไม่?")) location.reload(); };
 
   init();
 </script>
