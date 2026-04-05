@@ -385,6 +385,7 @@
 
   let state = { checked: {}, notes: {}, images: {} };
   let allRecords = [];
+  let isAppInitialized = false; // <--- เพิ่มบรรทัดนี้เข้าไปครับ!!
 // --- ระบบ Login & Authentication ---
   onAuthStateChanged(auth, (user) => {
     if (user) {
