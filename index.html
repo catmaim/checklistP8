@@ -77,11 +77,35 @@
   .toast.show { opacity: 1; }
 
   @media print {
-    .navbar, .db-section, .actions, .tab-btn, .note-btn, .search-box, .upload-label { display: none !important; }
+    /* ซ่อนส่วนที่ไม่จำเป็น */
+    .navbar, .db-section, .actions, .upload-label, button, .loading-spinner { 
+      display: none !important; 
+    }
+    
     body { background: white; }
-    .suspect-form, .checklist-section { border: none; }
+    .app { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    .suspect-form, .checklist-section { border: 1px solid #eee !important; margin-bottom: 10px !important; }
+    
+    /* 🚨 บังคับโชว์ Checklist ทุกอัน */
     .section-items { display: block !important; }
+    
+    /* 🚨 บังคับโชว์รูปภาพที่มีการอัปโหลดแล้ว */
+    .img-preview.active { 
+      display: block !important; 
+      width: 250px !important; /* ปรับขนาดรูปใน PDF */
+      height: auto !important;
+      margin: 10px 0 !important;
+    }
+
+    /* 🚨 บังคับโชว์หมายเหตุ (ถ้ามีการเขียนไว้) */
+    .notes-field { 
+      display: block !important; 
+      border: none !important;
+      background: #f9f9f9 !important;
+      resize: none;
+    }
   }
+  
   /* --- ส่วนของหน้า Login --- */
   #login-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2C3E50; display: flex; align-items: center; justify-content: center; z-index: 9999; }
   .login-box { background: white; padding: 40px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -497,19 +521,24 @@
               <div class="check-item" id="ci-${key}" style="flex-direction: column;">
                 <div class="item-main">
                   <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')">
-                  <div style="flex:1"><label for="cb-${key}">${item}</label></div>
+                  <div style="flex:1"><label for="cb-${key}" style="cursor:pointer;">${item}</label></div>
                   
                   <span id="loader-${key}" class="loading-spinner">กำลังอัปโหลด...</span>
+                  
                   <label class="upload-label" title="แนบรูปภาพ">
-                    📷 <input type="file" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
+                    📷 <input type="file" id="file-${key}" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
                   </label>
                   
                   <button onclick="document.getElementById('ci-${key}').classList.toggle('show-note')" style="background:none;border:none;cursor:pointer;">📝</button>
                 </div>
-                <img id="img-${key}" class="img-preview">
+                
+                <div style="position: relative; display: inline-block; margin-top: 10px;">
+                  <img id="img-${key}" class="img-preview" style="margin-top: 0;">
+                  <button id="del-btn-${key}" onclick="removeImage('${key}')" style="display: none; position: absolute; top: -5px; right: -10px; background: #C0392B; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" title="ลบรูปภาพนี้">✖</button>
+                </div>
+
                 <textarea class="notes-field" id="note-${key}" onchange="state.notes['${key}']=this.value" placeholder="หมายเหตุ..."></textarea>
-              </div>
-            `;
+              </div>`;
           }).join('')}
         </div>
       </div>
@@ -580,7 +609,10 @@
     if (!file) return;
     
     const id = document.getElementById('f-id').value;
-    if (!id) return showCustomAlert("กรุณาใส่เลขบัตรประชาชนก่อนแนบรูปภาพ เพื่อใช้เป็นรหัสอ้างอิง", "ข้อผิดพลาด");
+    if (!id) {
+      input.value = ''; // เคลียร์ค่าไฟล์ทิ้ง เพื่อให้กดเลือกไฟล์เดิมซ้ำได้หลังจากกรอกเลขบัตรแล้ว
+      return showCustomAlert("กรุณาใส่เลขบัตรประชาชนก่อนแนบรูปภาพ เพื่อใช้เป็นรหัสอ้างอิง", "ข้อผิดพลาด");
+    }
 
     const loader = document.getElementById(`loader-${key}`);
     const preview = document.getElementById(`img-${key}`);
@@ -614,11 +646,32 @@
         preview.src = base64String;
         preview.classList.add('active');
         loader.style.display = 'none';
+        // --- เพิ่มบรรทัดนี้ลงไป ---
+        document.getElementById(`del-btn-${key}`).style.display = 'block';
         showToast("แนบรูปและบีบอัดสำเร็จ ✓");
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file); // เริ่มอ่านไฟล์
+  };
+
+// --- ฟังก์ชันลบรูปภาพเฉพาะข้อ (ใช้ป๊อปอัปสวยงาม) ---
+  window.removeImage = function(key) {
+    // เรียกใช้ Custom Modal แทน confirm() ของเบราว์เซอร์
+    showCustomConfirm("ต้องการลบรูปภาพนี้ออกจากข้อนี้ใช่หรือไม่?", "ยืนยันการลบรูปภาพ", () => {
+      delete state.images[key]; // 1. ลบข้อมูลจากตัวแปร
+      
+      const img = document.getElementById(`img-${key}`);
+      if (img) { img.src = ''; img.classList.remove('active'); } // 2. ซ่อนรูป
+      
+      const btn = document.getElementById(`del-btn-${key}`);
+      if (btn) btn.style.display = 'none'; // 3. ซ่อนปุ่มลบ
+      
+      const fileInput = document.getElementById(`file-${key}`);
+      if (fileInput) fileInput.value = ''; // 4. รีเซ็ตช่องอัปโหลด เพื่อให้เลือกรูปเดิมซ้ำได้
+      
+      showToast("ลบรูปภาพเรียบร้อย 🗑️");
+    });
   };
 
   window.updateCheck = (key) => { state.checked[key] = document.getElementById(`cb-${key}`).checked;
@@ -726,15 +779,20 @@
         if(cb) cb.checked = state.checked[key] || false;
         if(nt) nt.value = state.notes[key] || '';
         
+       const delBtn = document.getElementById(`del-btn-${key}`); // ดึงปุ่มลบมาเตรียมไว้
+
         if(img) {
-          if(state.images[key]) {
-            img.src = state.images[key];
-            img.classList.add('active');
-          } else {
-            img.src = '';
-            img.classList.remove('active');
+          if(state.images[key]) { 
+            img.src = state.images[key]; 
+            img.classList.add('active'); 
+            if(delBtn) delBtn.style.display = 'block'; // โชว์ปุ่มกากบาท
+          } else { 
+            img.src = ''; 
+            img.classList.remove('active'); 
+            if(delBtn) delBtn.style.display = 'none'; // ซ่อนปุ่มกากบาท
           }
         }
+
       });
     });
     updateStats(); // <--- เพิ่มบรรทัดนี้
@@ -798,46 +856,89 @@
     } else { doSave(); } // ข้อมูลใหม่ เซฟได้เลย
   };
 
-  // --- ระบบ Export PPT ---
+ 
+  // --- ระบบ Export PPT (แบบตกแต่งสวยงามพร้อมส่งรายงาน) ---
   window.exportToPPT = function() {
     let pptx = new PptxGenJS();
-    let slide = pptx.addSlide();
+    
+    // ตั้งค่าหน้ากระดาษเป็น 16:9 (ทันสมัยเหมาะกับจอทีวี/โปรเจคเตอร์)
+    pptx.layout = 'LAYOUT_16x9'; 
 
+    // ==========================================
+    // สไลด์ที่ 1: หน้าสรุปข้อมูลผู้ต้องหา
+    // ==========================================
+    let slide1 = pptx.addSlide();
     const name = document.getElementById('f-name').value || "ไม่ระบุชื่อ";
 
-    slide.addText(`สรุปข้อมูลผู้ต้องหา: ${name}`, { x: 0.5, y: 0.5, fontSize: 24, color: 'C0392B', bold: true });
-    
+    // แถบสีหัวกระดาษ (Header Bar)
+    slide1.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.8, fill: '2C3E50' });
+    slide1.addText('รายงานสรุปข้อมูลผู้ต้องหา', { x: 0.5, y: 0.15, fontSize: 24, color: 'FFFFFF', bold: true });
+
+    // ชื่อผู้ต้องหา
+    slide1.addText(`ชื่อ-นามสกุล: ${name}`, { x: 0.5, y: 1.1, fontSize: 20, color: 'C0392B', bold: true });
+
+    // ตารางข้อมูล (ตกแต่งสีหัวตารางและเส้นขอบ)
     let rows = [
-      ["หัวข้อ", "รายละเอียด"],
-      ["เลขบัตรประชาชน", document.getElementById('f-id').value],
-      ["เลขหมายจับ", document.getElementById('f-warrant').value],
-      ["ข้อหา", document.getElementById('f-charge').value],
-      ["ผู้บันทึก", document.getElementById('f-officer').value]
+      [
+        { text: "หัวข้อ", options: { fill: '34495E', color: 'FFFFFF', bold: true } }, 
+        { text: "รายละเอียด", options: { fill: '34495E', color: 'FFFFFF', bold: true } }
+      ],
+      ["เลขบัตรประชาชน", document.getElementById('f-id').value || "-"],
+      ["เลขหมายจับ", document.getElementById('f-warrant').value || "-"],
+      ["ข้อหา", document.getElementById('f-charge').value || "-"],
+      ["ผู้บันทึก", document.getElementById('f-officer').value || "-"]
     ];
 
-    slide.addTable(rows, { x: 0.5, y: 1.2, w: 9, border: { pt: 1, color: 'BBBBBB' }, fontSize: 14 });
-    
-    const done = Object.values(state.checked).filter(v => v).length;
-    slide.addText(`ความคืบหน้าการตรวจสอบ: ทำแล้ว ${done} รายการ`, { x: 0.5, y: 4.5, fontSize: 16 });
+    slide1.addTable(rows, { 
+      x: 0.5, y: 1.7, w: 9.0, rowH: 0.5, 
+      border: { pt: 1, color: 'CCCCCC' }, 
+      fontSize: 14, valign: 'middle', fill: 'F8F9FA' 
+    });
 
+    // ป้ายบอกสถานะการตรวจสอบ (กล่องสีเขียว)
+    const done = Object.values(state.checked).filter(v => v).length;
+    slide1.addShape(pptx.ShapeType.roundRect, { x: 0.5, y: 4.5, w: 5, h: 0.6, fill: '27AE60', rectRadius: 0.1 });
+    slide1.addText(`ความคืบหน้าการตรวจสอบ: ทำแล้ว ${done} รายการ`, { x: 0.5, y: 4.5, w: 5, h: 0.6, fontSize: 14, color: 'FFFFFF', bold: true, align: 'center' });
+
+
+    // ==========================================
+    // สไลด์ต่อๆ ไป: รูปภาพหลักฐาน (แยกสไลด์ละ 1 รูป)
+    // ==========================================
     for (const key in state.images) {
       if (state.images[key]) {
         let sImg = pptx.addSlide();
+        
         const sectionId = key.split('_')[0];
         const itemIdx = key.split('_')[1];
-        
         const sec = SECTIONS.find(s => s.id == sectionId);
         const itemTitle = sec ? sec.items[itemIdx] : "หลักฐานเพิ่มเติม";
 
-        sImg.addText(`ภาพประกอบ: ${itemTitle}`, { x:0.5, y:0.3, fontSize:18, bold:true });
-        sImg.addImage({ path: state.images[key], x:0.5, y:0.8, w:6, h:4 });
-        
-        if(state.notes[key]) {
-          sImg.addText(`หมายเหตุ: ${state.notes[key]}`, { x:0.5, y:5.0, fontSize:12 });
+        // แถบสีหัวกระดาษของหน้ารูปภาพ (ใช้สีตามหมวดหมู่ หรือสีม่วง)
+        const headerColor = sec ? sec.color.replace('#', '') : '8E44AD';
+        sImg.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.6, fill: headerColor });
+        sImg.addText(`หมวด: ${sec ? sec.title : ''}`, { x: 0.5, y: 0.05, fontSize: 16, color: 'FFFFFF', bold: true });
+
+        // ชื่อหัวข้อย่อย
+        sImg.addText(`รายการ: ${itemTitle}`, { x: 0.5, y: 0.8, fontSize: 16, bold: true, color: '333333' });
+
+        // 🚨 ใส่รูปภาพ (ใช้ sizing: 'contain' เพื่อรักษาสัดส่วนรูป ไม่ให้ภาพเบี้ยว)
+        // 🚨 สังเกตว่าเปลี่ยนจาก path: เป็น data: เพื่อให้รองรับรูป Base64
+        sImg.addImage({ 
+          data: state.images[key], 
+          x: 1.0, y: 1.3, w: 8.0, h: 3.5, 
+          sizing: { type: 'contain', w: 8.0, h: 3.5 } 
+        });
+
+        // กล่องหมายเหตุ (ถ้ามีการพิมพ์หมายเหตุไว้ จะทำกล่องสีเหลืองเด่นๆ ไว้ใต้รูป)
+        if (state.notes[key]) {
+          sImg.addShape(pptx.ShapeType.roundRect, { x: 1.0, y: 4.9, w: 8.0, h: 0.6, fill: 'FFF3CD', border: { pt: 1, color: 'FFEEBA' }, rectRadius: 0.1 });
+          sImg.addText(`หมายเหตุ: ${state.notes[key]}`, { x: 1.1, y: 4.9, w: 7.8, h: 0.6, fontSize: 12, color: '856404', valign: 'middle' });
         }
       }
     }
-    pptx.writeFile({ fileName: `รายงาน_${name}.pptx` });
+
+    // สั่งเซฟไฟล์
+    pptx.writeFile({ fileName: `รายงานการสืบสวน_${name}.pptx` });
   };
 
   window.showToast = function(msg) {
@@ -864,7 +965,22 @@
     });
   };
 
-  init();
+  // --- ฟังก์ชันเริ่มต้นการทำงานของแอป (จะถูกเรียกใช้ตอนล็อกอินสำเร็จ) ---
+  function initApp() {
+    buildChecklist();
+    listenToDatabase();
+    
+    // ใส่วันที่ปัจจุบันอัตโนมัติ
+    if (document.getElementById('f-date')) {
+      document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    }
+    
+    // อัปเดตหลอดเปอร์เซ็นต์
+    if (typeof updateStats === 'function') {
+      updateStats();
+    }
+  }
+
 </script>
 </body>
 </html>
