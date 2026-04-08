@@ -228,7 +228,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-  
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
   // --- CONFIG ---
   const firebaseConfig = {
     apiKey: "AIzaSyDTmoYzCQjf3qN2XgowoBK0wLm5u5qV0AM",
@@ -239,9 +239,11 @@
     appId: "1:675371072034:web:c286c05cf0c98e6f1b287b"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app); // 👇 เพิ่มบรรทัดนี้ลงไป 👇
+window.storage = storage; // ประกาศให้ฟังก์ชันอื่นเรียกใช้ได้
  
 
   // ข้อมูล Checklist 10 หมวด
@@ -451,7 +453,7 @@
   });
   
   // ฟังก์ชันตอนกดปุ่มเข้าสู่ระบบ
-  window.handleLogin = async () => {
+  window.handleLogin = async function() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
     
@@ -466,7 +468,7 @@
   };
 
   // ฟังก์ชันตอนกดปุ่มออกจากระบบ
-  window.handleLogout = async () => {
+  window.handleLogout = async function() {
     showCustomConfirm("คุณต้องการออกจากระบบใช่หรือไม่?", "ยืนยันออกจากระบบ", async () => {
       await signOut(auth);
       location.reload(); // รีเฟรชหน้าเว็บ 1 รอบ
@@ -631,33 +633,31 @@ window.filterChecklist = function() {
     }
   };
 
-  // --- ฟังก์ชันแนบรูปภาพแบบ Base64 (พร้อมบีบอัดภาพอัตโนมัติ) ---
+  // --- ฟังก์ชันอัปโหลดรูปภาพขึ้น Firebase Storage ---
   window.handleFileUpload = function(input, key) {
     const file = input.files[0];
     if (!file) return;
     
     const id = document.getElementById('f-id').value;
     if (!id) {
-      input.value = ''; // เคลียร์ค่าไฟล์ทิ้ง เพื่อให้กดเลือกไฟล์เดิมซ้ำได้หลังจากกรอกเลขบัตรแล้ว
-      return showCustomAlert("กรุณาใส่เลขบัตรประชาชนก่อนแนบรูปภาพ เพื่อใช้เป็นรหัสอ้างอิง", "ข้อผิดพลาด");
+      input.value = ''; 
+      return showCustomAlert("กรุณาใส่เลขบัตรประชาชนก่อนแนบรูปภาพ", "ข้อผิดพลาด");
     }
 
     const loader = document.getElementById(`loader-${key}`);
     const preview = document.getElementById(`img-${key}`);
     
+    loader.textContent = 'กำลังอัปโหลดขึ้นเซิร์ฟเวอร์...';
     loader.style.display = 'inline';
 
-    // อ่านไฟล์ภาพที่ผู้ใช้เลือก
     const reader = new FileReader();
     reader.onload = function(event) {
       const img = new Image();
       img.onload = function() {
-        // สร้าง Canvas เพื่อทำการบีบอัดภาพ
+        // ยังคงบีบอัดรูปก่อนส่ง เพื่อประหยัดเน็ตและพื้นที่ Storage
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // บีบอัดความกว้างไม่เกิน 800px
+        const MAX_WIDTH = 1200; 
         let scaleSize = MAX_WIDTH / img.width;
-        
-        // ถ้ารูปเล็กกว่า 800px อยู่แล้ว ไม่ต้องขยาย
         if (scaleSize > 1) scaleSize = 1; 
 
         canvas.width = img.width * scaleSize;
@@ -666,21 +666,38 @@ window.filterChecklist = function() {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // แปลงภาพเป็น Base64 (ชนิด JPEG, คุณภาพ 70% เพื่อประหยัดพื้นที่ Firestore)
-        const base64String = canvas.toDataURL('image/jpeg', 0.7);
+        // แปลงภาพจาก Canvas เป็น Blob (ไฟล์ภาพ) เพื่อโยนขึ้น Storage
+        canvas.toBlob(async (blob) => {
+          try {
+            // ตั้งชื่อไฟล์: รูปจะถูกเก็บในโฟลเดอร์ชื่อเดียวกับเลขบัตร ป้องกันการปนกัน
+            const filePath = `warrants/${id}/image_${key}_${Date.now()}.jpg`;
+            const storageRef = ref(window.storage, filePath);
+            
+            // อัปโหลดไฟล์ขึ้น Firebase Storage
+            await uploadBytes(storageRef, blob);
+            
+            // ขอลิงก์ (URL) ของรูปที่อัปโหลดเสร็จแล้ว
+            const downloadURL = await getDownloadURL(storageRef);
 
-        // บันทึกและแสดงผล
-        state.images[key] = base64String; 
-        preview.src = base64String;
-        preview.classList.add('active');
-        loader.style.display = 'none';
-        // --- เพิ่มบรรทัดนี้ลงไป ---
-        document.getElementById(`del-btn-${key}`).style.display = 'block';
-        showToast("แนบรูปและบีบอัดสำเร็จ ✓");
+            // บันทึก "ลิงก์" ลงในระบบ แทนที่จะเป็น Base64
+            state.images[key] = downloadURL; 
+            preview.src = downloadURL;
+            preview.classList.add('active');
+            loader.style.display = 'none';
+            
+            document.getElementById(`del-btn-${key}`).style.display = 'block';
+            showToast("อัปโหลดไฟล์เสร็จสมบูรณ์ ✓");
+
+          } catch (error) {
+            console.error("Upload Error: ", error);
+            loader.style.display = 'none';
+            showCustomAlert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ", "Error");
+          }
+        }, 'image/jpeg', 0.8); // คุณภาพ 80%
       };
       img.src = event.target.result;
     };
-    reader.readAsDataURL(file); // เริ่มอ่านไฟล์
+    reader.readAsDataURL(file);
   };
 
 // --- ฟังก์ชันลบรูปภาพเฉพาะข้อ (ใช้ป๊อปอัปสวยงาม) ---
