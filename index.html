@@ -205,6 +205,12 @@
         </div>
       </div>
 
+<div class="search-box" style="margin: 20px 0;">
+  <input type="text" id="checklist-search" placeholder="🔍 พิมพ์เพื่อค้นหาหัวข้อที่ต้องติ๊ก (เช่น ไฟฟ้า, หมายจับ, Getcontact)..." 
+         onkeyup="filterChecklist()" 
+         style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; font-size: 16px;">
+</div>
+
     <div id="checklist-container" class="checklist-container"></div>
   </div> </div> </div> <div id="toast" class="toast"></div>
   <div id="custom-modal" class="modal-overlay">
@@ -243,7 +249,7 @@
     {
       id:1, color:"#8E44AD", title:"1. ทะเบียนราษฎร์",
       items:[
-        "ผู้ต้องหา — รายละเอียดบัตรประชาชนอายุ ย้อนหลัง รูปถ่ายแบบ 1.2",
+        "ผู้ต้องหา — รายละเอียดบัตรประชาชนอายุ ที่อยู่ปัจจุบัน การย้ายที่อยู่",
         "คู่สมรส/แฟน — รายละเอียดทะเบียนบ้านปัจจุบัน การย้ายที่อยู่",
         "บุตร — ตรวจสอบการเปลี่ยนแปลงโน้ตสกุล นามสกุล รูปปกปิด/ทุกครั้ง",
         "พ่อแม่ — ตรวจสอบโดยบิดามารดา บุตรผู้เยาว์/ปัจจุบัน",
@@ -261,6 +267,7 @@
       id:2, color:"#E74C3C", title:"2. ประวัติหมายจับ/ต้องโทษ/การกระทำผิด",
       items:[
         "ตรวจสอบประวัติอาชญากรรม polis.crime.pdc จัดพิมพ์คุณหมายใหม่/สืบค้น",
+        "ไฟล์หมายจับเก่า/หมายจับค้างเก่า ตรวจสอบจากระบบทะเบียนราษฎร์",
         "ตรวจสอบภาษา/ฐานะทำงานจัดจำนวนเอกสารก้าวดำเนินเคดีมือหรือไม่จากระบบ",
         "ตรวจสอบจากระบบทะเบียนราษฎร์ที่อยู่ผ่านเดิม โดยการ อัลกอร์ ออนเส้นตัดวงรอบ",
         "ตรวจสอบจากระบบทะเบียนราษฎร์อยู่ไม่เคลื่อน ตาม DXC ด้วยตัวตรวจสอบ",
@@ -306,6 +313,7 @@
       id:5, color:"#F39C12", title:"5. ประกันสังคม/ประกันสุขภาพ/ประกันชีวิต/ภาษี",
       items:[
         "ตรวจสอบประกันสังคมงานจากระบบประกันสังคม ทำงาน/ออก/รับสิน/บัญชี",
+        "ประวัติการรักษาพยาบาล/ประกันสุขภาพ จากระบบประกันสุขภาพ ที่อยู่/รูป/คำนิ่งผล บัญชี ท่า พร.",
         "ตรวจสอบข้อมูลธุรกิจ/ประกอบกิจการ/สหกิจ/ขายของออนไลน์ จากระบบกรมสรรพากร",
         "ตรวจสอบข้อมูลของผู้ที่กำลังจะดำเนินคดีประกันสังคม ตาม รพ.สังกัด ธุรกิจ ภาษี",
         "ตรวจสอบสถานะกองทุนบำเหน็จบำนาญ ผู้สิทธิ์/ขายสิน/บัญชี ทะเบียน ธุรกิจ ภาษี",
@@ -324,6 +332,7 @@
       id:6, color:"#E74C3C", title:"6. การสื่อสาร/โทรศัพท์/อินเตอร์เน็ต",
       items:[
         "ตรวจสอบทะเบียนเลขมือถือของผู้ต้องหาหรือผู้ใช้ AIS,DTAC,TRUE,CAT,TOT",
+        "Getcontact ตรวจสอบข้อมูลผู้ติดต่อที่บันทึกในมือถือของผู้ต้องหา",
         "ตรวจสอบวันจดทะเบียน ประมาทหรือเติมเงิน ที่อยู่ ผู้ส่งสัญญาณ",
         "ตรวจสอบเลขหมายการใช้งาน ระบบ กย.กย โน การสรรหาบริการพิเศษ SMS ฯ",
         "ตรวจสอบสมมติฐาน IMEI,IMSI และหมายเลขเสาอากาศมือถือ เก็บข้อมูลการสื่อสาร",
@@ -375,8 +384,8 @@
     {
       id:9, color:"#2980B9", title:"9. Social Network",
       items:[
-        "ตรวจสอบการเปิดใช้งาน Facebook, Instagram, Twitter, Line, Wechat ฯลฯ",
-        "ตรวจสอบข้อมูลสุก ชื่อไทย/ชื่อ/ภาษาอังกฤษผู้ต้องหา จาก Google ฯลฯ",
+        "ตรวจสอบการเปิดใช้งาน Facebook, Instagram, Twitter, Line, Wechat ฯลฯ",        
+        "ตรวจสอบข้อมูลสุขภาพ ชื่อไทย/ชื่อ/ภาษาอังกฤษผู้ต้องหา จาก Google ฯลฯ",
         "ตรวจสอบรายละเอียด/ข้อมูล เพื่อนที่ยินยอม Social ไอดี",
         "ตรวจสอบความเคลื่อนไหว Social โพสต์ โค้ด สถานที่ผู้ต้องหา",
         "ตรวจสอบภาพ รูปถ่าย ภาพวีดีโอ อัพโหลด/ลบ ตำแหน่ง Social",
@@ -389,7 +398,16 @@
       ]
     },
     {
-      id:10, color:"#E67E22", title:"10. DELIVERY/SHOPPING/SHIPPING",
+      id:10, color:"#8E44AD", title:"10. การใช้ไฟฟ้า/น้ำประปา/แก๊ส/บริการสาธารณะ",
+      items:[
+        "การใช้ไฟฟ้า",
+        "การใช้น้ำประปา",
+        "การใช้แก๊ส",
+        "การใช้บริการสาธารณะ"        
+      ]
+    },
+    {
+      id:11, color:"#E67E22", title:"11. DELIVERY/SHOPPING/SHIPPING",
       items:[
         "ตรวจสอบรายการสั่งซื้อของผู้ต้องหาที่ผ่านการให้บริการ DELIVERY ส่งสินค้า",
         "ตรวจสอบรายการสั่งซื้อของผู้ต้องหาที่ผ่านการให้บริการ DELIVERY บ้านโน้ตบุ๊ก",
@@ -502,10 +520,21 @@
     };
   };
 
-  // --- สร้างหน้าตา Checklist ---
-  function buildChecklist() {
-    const container = document.getElementById('checklist-container');
-    container.innerHTML = SECTIONS.map(s => `
+  // --- ฟังก์ชันสร้าง Checklist (รองรับการค้นหา) ---
+function buildChecklist(searchTerm = "") {
+  const container = document.getElementById('checklist-container');
+  const lowerSearch = searchTerm.toLowerCase();
+
+  container.innerHTML = SECTIONS.map(s => {
+    // กรองรายการในหมวดที่ตรงกับคำค้นหา
+    const filteredItems = s.items.filter(item => item.toLowerCase().includes(lowerSearch));
+    
+    // ถ้าหมวดนี้ไม่มีรายการที่ตรงเลย และชื่อหมวดก็ไม่ตรง ให้ซ่อนหมวดนั้นไปเลย
+    if (filteredItems.length === 0 && !s.title.toLowerCase().includes(lowerSearch)) {
+      return ''; 
+    }
+
+    return `
       <div class="checklist-section">
         <div class="section-header" onclick="this.nextElementSibling.classList.toggle('open')" style="border-left: 5px solid ${s.color}">
           <strong>${s.title}</strong>
@@ -514,36 +543,35 @@
             <span style="font-size: 12px; color: #888;">▼</span>
           </div>
         </div>
-        <div class="section-items">
-          ${s.items.map((item, i) => {
+        <div class="section-items ${searchTerm ? 'open' : ''}"> ${s.items.map((item, i) => {
             const key = `${s.id}_${i}`;
+            const isVisible = item.toLowerCase().includes(lowerSearch) || s.title.toLowerCase().includes(lowerSearch);
+            
             return `
-              <div class="check-item" id="ci-${key}" style="flex-direction: column;">
+              <div class="check-item" id="ci-${key}" style="display: ${isVisible ? 'flex' : 'none'}; flex-direction: column;">
                 <div class="item-main">
-                  <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')">
+                  <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')" ${state.checked[key] ? 'checked' : ''}>
                   <div style="flex:1"><label for="cb-${key}" style="cursor:pointer;">${item}</label></div>
-                  
                   <span id="loader-${key}" class="loading-spinner">กำลังอัปโหลด...</span>
-                  
-                  <label class="upload-label" title="แนบรูปภาพ">
-                    📷 <input type="file" id="file-${key}" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
+                  <label class="upload-label" title="แนบรูปภาพ">📷 
+                    <input type="file" id="file-${key}" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
                   </label>
-                  
                   <button onclick="document.getElementById('ci-${key}').classList.toggle('show-note')" style="background:none;border:none;cursor:pointer;">📝</button>
                 </div>
-                
-                <div style="position: relative; display: inline-block; margin-top: 10px;">
-                  <img id="img-${key}" class="img-preview" style="margin-top: 0;">
-                  <button id="del-btn-${key}" onclick="removeImage('${key}')" style="display: none; position: absolute; top: -5px; right: -10px; background: #C0392B; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" title="ลบรูปภาพนี้">✖</button>
-                </div>
-
-                <textarea class="notes-field" id="note-${key}" onchange="state.notes['${key}']=this.value" placeholder="หมายเหตุ..."></textarea>
-              </div>`;
+                </div>`;
           }).join('')}
         </div>
       </div>
-    `).join('');
-  }
+    `;
+  }).join('');
+}
+
+// ฟังก์ชันสั่งกรอกข้อมูลเมื่อพิมพ์ในช่องค้นหา
+window.filterChecklist = function() {
+  const val = document.getElementById('checklist-search').value;
+  buildChecklist(val);
+  updateStats(); // อัปเดตตัวเลข 0/12 ให้ถูกต้อง
+};
 
 // --- ฟังก์ชันคำนวณและอัปเดตโอกาสจับกุม และ ตัวเลขแต่ละหมวด ---
   window.updateStats = function() {
