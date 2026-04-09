@@ -249,18 +249,25 @@ window.storage = storage; // ประกาศให้ฟังก์ชัน
   // ข้อมูล Checklist 10 หมวด
   const SECTIONS = [
     {
-      id:1, color:"#8E44AD", title:"1. ทะเบียนราษฎร์",
+      id:1, color:"#8E44AD", title:"1. รายละเอียดผู้ต้องหา",
       items:[
         "ผู้ต้องหา — รายละเอียดบัตรประชาชนอายุ ที่อยู่ปัจจุบัน การย้ายที่อยู่",
-        "คู่สมรส/แฟน — รายละเอียดทะเบียนบ้านปัจจุบัน การย้ายที่อยู่",
-        "บุตร — ตรวจสอบการเปลี่ยนแปลงโน้ตสกุล นามสกุล รูปปกปิด/ทุกครั้ง",
+        "คู่สมรส/แฟน ",
+        "คู่สมรส/แฟน (คนที่2) ",
+        "คู่สมรส/แฟน (คนที่3) ",
+        "บุตร (คนที่1) ",
+        "บุตร(คนที่2) ",
+        "บุตร(คนที่3) ",
+        "บุตร(คนที่4) ",
         "พ่อแม่ — ตรวจสอบโดยบิดามารดา บุตรผู้เยาว์/ปัจจุบัน",
         "พี่น้อง",
+        "พี่น้อง(คนที่2) ",
+        "พี่น้อง(คนที่3) ",
+        "พี่น้อง(คนที่4) ",
         "ปู่/ย่า/ตา/ยาย — ตรวจสอบการรับรองทะเบียน ปชช. สถานะ ครบถ้วน",
-        "ลูก/ปิ/ยา/อา — ตรวจสอบเอกสารโทรศัพท์ที่มีวันเกิด/ทำประชาสัมพันธ์",
-        "ลูกน้อง/ผู้ใต้บังคับบัญชา — ตรวจสอบทะเบียนบ้าน",
-        "ลูกพี่ลูกน้อง/ลูกหมู่ — พิสูจน์บ้านที่อยู่ปัจจุบัน ย้ายภาษา แผนที่",
-        "เพื่อนนิด — พิสูจน์ทราบสถานที่ทำงาน รายละเอียด ประวัติการทำงาน",
+        "ลูก/ปิ/ยา/อา — ตรวจสอบเอกสารโทรศัพท์ที่มีวันเกิด/ทำประชาสัมพันธ์",        
+        "ลูกพี่ลูกน้อง ",
+        "เพื่อนสนิท — พิสูจน์ทราบสถานที่ทำงาน รายละเอียด ประวัติการทำงาน",
         "เพื่อนร่วมงาน",
         "จัดทำ Link Chart ครบสมัครพัก 1-11 พร้อมรายชื่อยืนยัน (สรุป)"
       ]
@@ -284,15 +291,14 @@ window.storage = storage; // ประกาศให้ฟังก์ชัน
     {
       id:3, color:"#27AE60", title:"3. ใบขับขี่/ยานพาหนะ/ประกันภัย",
       items:[
-        "ตรวจสอบประวัติใบอนุญาตขับขี่ที่ผู้ต้องหาได้รับ ขีวรา/อดรีค",
-        "ตรวจสอบ/ใบอนุญาต/ไหนอดีตผู้ขับไม่อนุญาต สค่านหน้าเสือ ต้องขออนุญาตใหม่",
+        "ตรวจสอบประวัติใบอนุญาตขับขี่ที่ผู้ต้องหาได้รับ ",
+        "ตรวจสอบ/ใบอนุญาตขับขี่/ใบอนุญาตขับขี่หมดอายุ/ใบอนุญาตขับขี่ถูกระงับ",
         "ตรวจสอบยานพาหนะที่ผู้ต้องหาจากระบบ GIS จนถึงจ่าง กรณีมีใบอนุญาตขับขี่อ้างอิง",
         "ตรวจสอบจำนวน/ประเภท/สิ่งที่เลือก/การเดิน/แอบแฝง รถ บ้าน กรม คู่สมรส",
-        "ตรวจสอบประเภท/ครอบครัว/การก่อสร้าง/ส่วนกลาง ย้าย โอกรมการ ที่ ซื้อจัดขี้ ทีละ",
-        "ตรวจสอบ/จำนวน/เอกสาร/การเดินทาง หน้าบัตร การประกันสุขภาพ ย้ายถิ่น ก.จ.ก.",
+        "ตรวจสอบประเภท/ครอบครัว/การก่อสร้าง/ส่วนกลาง ย้ายที่อยู่/การเดินทาง/การทำงาน จากระบบทะเบียนราษฎร์",
+        "ตรวจสอบ/จำนวน/เอกสาร/การเดินทาง หน้าบัตร การประกันสุขภาพ จากระบบทะเบียนราษฎร์",
         "ตรวจสอบมอเตอร์ไซค์ ตำนิพิเศษน การประกันสุขภาพ จาก บริษัทประกันภัย",
-        "ตรวจสอบการเป็นสมาชิกบัตรสิน คำนึงฝั่ง นโยบายจะดำเนินการ เส้นทาง ประกัน",
-        "ตรวจสอบวันสิ้นสุดหรือเข้ามา ค้นหา สมาชิก น.ม./แผน ล ประกัน บริษัทนะ",
+        "ตรวจสอบการเป็นสมาชิกบัตรสิน คำนึงฝั่ง นโยบายจะดำเนินการ เส้นทาง ประกัน",        
         "รวมสรุปจัดทำ link Chart ใบอนุญาตขับขี่/ยานพาหนะ/ประกัน บัง จุด รายย่อยหา (สรุป)"
       ]
     },
@@ -522,51 +528,58 @@ window.storage = storage; // ประกาศให้ฟังก์ชัน
     };
   };
 
-  // --- ฟังก์ชันสร้าง Checklist (รองรับการค้นหา) ---
-function buildChecklist(searchTerm = "") {
-  const container = document.getElementById('checklist-container');
-  const lowerSearch = searchTerm.toLowerCase();
+ // --- ฟังก์ชันสร้าง Checklist (รองรับการค้นหา) ฉบับสมบูรณ์ ---
+  window.buildChecklist = function(searchTerm = "") {
+    const container = document.getElementById('checklist-container');
+    const lowerSearch = searchTerm.toLowerCase();
 
-  container.innerHTML = SECTIONS.map(s => {
-    // กรองรายการในหมวดที่ตรงกับคำค้นหา
-    const filteredItems = s.items.filter(item => item.toLowerCase().includes(lowerSearch));
-    
-    // ถ้าหมวดนี้ไม่มีรายการที่ตรงเลย และชื่อหมวดก็ไม่ตรง ให้ซ่อนหมวดนั้นไปเลย
-    if (filteredItems.length === 0 && !s.title.toLowerCase().includes(lowerSearch)) {
-      return ''; 
-    }
+    container.innerHTML = SECTIONS.map(s => {
+      // กรองรายการในหมวดที่ตรงกับคำค้นหา
+      const filteredItems = s.items.filter(item => item.toLowerCase().includes(lowerSearch));
+      
+      // ถ้าหมวดนี้ไม่มีรายการที่ตรงเลย และชื่อหมวดก็ไม่ตรง ให้ซ่อนหมวดนั้นไปเลย
+      if (filteredItems.length === 0 && !s.title.toLowerCase().includes(lowerSearch)) {
+        return ''; 
+      }
 
-    return `
-      <div class="checklist-section">
-        <div class="section-header" onclick="this.nextElementSibling.classList.toggle('open')" style="border-left: 5px solid ${s.color}">
-          <strong>${s.title}</strong>
-          <div>
-            <span id="counter-${s.id}" style="font-size: 14px; font-weight: bold; color: #555; margin-right: 15px;">0/${s.items.length}</span>
-            <span style="font-size: 12px; color: #888;">▼</span>
+      return `
+        <div class="checklist-section">
+          <div class="section-header" onclick="this.nextElementSibling.classList.toggle('open')" style="border-left: 5px solid ${s.color}">
+            <strong>${s.title}</strong>
+            <div>
+              <span id="counter-${s.id}" style="font-size: 14px; font-weight: bold; color: #555; margin-right: 15px;">0/${s.items.length}</span>
+              <span style="font-size: 12px; color: #888;">▼</span>
+            </div>
+          </div>
+          <div class="section-items ${searchTerm ? 'open' : ''}"> ${s.items.map((item, i) => {
+              const key = `${s.id}_${i}`;
+              const isVisible = item.toLowerCase().includes(lowerSearch) || s.title.toLowerCase().includes(lowerSearch);
+              
+              return `
+                <div class="check-item" id="ci-${key}" style="display: ${isVisible ? 'flex' : 'none'}; flex-direction: column;">
+                  <div class="item-main">
+                    <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')" ${state.checked[key] ? 'checked' : ''}>
+                    <div style="flex:1"><label for="cb-${key}" style="cursor:pointer;">${item}</label></div>
+                    <span id="loader-${key}" class="loading-spinner">กำลังอัปโหลด...</span>
+                    <label class="upload-label" title="แนบรูปภาพ">
+                      📷 <input type="file" id="file-${key}" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
+                    </label>
+                    <button onclick="document.getElementById('ci-${key}').classList.toggle('show-note')" style="background:none;border:none;cursor:pointer;">📝</button>
+                  </div>
+                  
+                  <div style="position: relative; display: inline-block; margin-top: 10px;">
+                    <img id="img-${key}" class="img-preview" style="margin-top: 0;">
+                    <button id="del-btn-${key}" onclick="removeImage('${key}')" style="display: none; position: absolute; top: -5px; right: -10px; background: #C0392B; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" title="ลบรูปภาพนี้">✖</button>
+                  </div>
+
+                  <textarea class="notes-field" id="note-${key}" onchange="state.notes['${key}']=this.value" placeholder="หมายเหตุ..."></textarea>
+                </div>`;
+            }).join('')}
           </div>
         </div>
-        <div class="section-items ${searchTerm ? 'open' : ''}"> ${s.items.map((item, i) => {
-            const key = `${s.id}_${i}`;
-            const isVisible = item.toLowerCase().includes(lowerSearch) || s.title.toLowerCase().includes(lowerSearch);
-            
-            return `
-              <div class="check-item" id="ci-${key}" style="display: ${isVisible ? 'flex' : 'none'}; flex-direction: column;">
-                <div class="item-main">
-                  <input type="checkbox" id="cb-${key}" onchange="updateCheck('${key}')" ${state.checked[key] ? 'checked' : ''}>
-                  <div style="flex:1"><label for="cb-${key}" style="cursor:pointer;">${item}</label></div>
-                  <span id="loader-${key}" class="loading-spinner">กำลังอัปโหลด...</span>
-                  <label class="upload-label" title="แนบรูปภาพ">📷 
-                    <input type="file" id="file-${key}" style="display:none" accept="image/*" onchange="handleFileUpload(this, '${key}')">
-                  </label>
-                  <button onclick="document.getElementById('ci-${key}').classList.toggle('show-note')" style="background:none;border:none;cursor:pointer;">📝</button>
-                </div>
-                </div>`;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+      `;
+    }).join('');
+  };
 
 // ฟังก์ชันสั่งกรอกข้อมูลเมื่อพิมพ์ในช่องค้นหา
 window.filterChecklist = function() {
